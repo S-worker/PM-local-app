@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire de Projets Local</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect x='2' y='4' width='8' height='4' rx='1' fill='%232b579a'/><rect x='11' y='10' width='11' height='4' rx='1' fill='%234f81bd'/><rect x='6' y='16' width='12' height='4' rx='1' fill='%23107c41'/></svg>">
+    <style>
+        /* Variables de thèmes dynamiques */
+        :root {
+            --primary: #2b579a;
+            --bg: #f3f2f1;
+            --sidebar-bg: #ffffff;
+            --card-bg: #ffffff;
+            --border: #e0e0e0;
+            --text: #323130;
+            --input-bg: #ffffff;
+            --header-bg: #f3f2f1;
+            --hover-bg: #edebe9;
+            --gantt-bg: #fdfdfd;
+        }
+
+        body.dark-theme {
+            --primary: #4f81bd;
+            --bg: #111111;
+            --sidebar-bg: #1e1e1e;
+            --card-bg: #252526;
+            --border: #3c3c3c;
+            --text: #f5f5f5;
+            --input-bg: #2d2d2d;
+            --header-bg: #2d2d2d;
+            --hover-bg: #333333;
+            --gantt-bg: #1a1a1a;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; display: flex; height: 100vh; color: var(--text); background-color: var(--bg); transition: background 0.2s, color 0.2s; }
+
+        /* Disposition */
+        #sidebar { width: 300px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 15px; }
+        #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 20px; }
+
+        /* Boutons & Sidebar */
+        .btn { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: 600; margin-bottom: 10px; width: 100%; text-align: center; }
+        .btn:hover { filter: brightness(1.1); }
+        .btn-secondary { background: var(--hover-bg); color: var(--text); border: 1px solid var(--border); }
+        
+        .active-project-box { background: var(--hover-bg); padding: 12px; border-radius: 6px; border-left: 4px solid var(--primary); font-size: 14px; margin-top: 5px; }
+
+        /* Onglets */
+        .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 15px; }
+        .tab { padding: 10px 20px; cursor: pointer; border: none; background: none; font-size: 16px; color: var(--text); }
+        .tab.active { border-bottom: 3px solid var(--primary); font-weight: bold; color: var(--primary); }
+        .tab-content { display: none; flex: 1; overflow-y: auto; background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .tab-content.active { display: block; }
+
+        /* Formulaires & Tableaux */
+        .form-group { margin-bottom: 15px; display: grid; grid-template-columns: 200px 1fr; align-items: center; }
+        label { font-weight: 600; }
+        input, textarea, select { padding: 8px; border: 1px solid var(--border); border-radius: 4px; width: 100%; background: var(--input-bg); color: var(--text); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 25px; }
+        th, td { border: 1px solid var(--border); padding: 8px; text-align: left; font-size: 14px; color: var(--text); }
+        th { background: var(--header-bg); }
+        
+        /* Zone d'import */
+        .import-zone { background: var(--header-bg); padding: 15px; border: 2px dashed #a19f9d; border-radius: 6px; margin-bottom: 15px; }
+        .import-zone textarea { height: 60px; background: var(--input-bg); }
+
+        /* Thématisation des cellules de statut */
+        td.status-en-cours { background-color: #cfe2ff; color: #084298; }
+        td.status-bloquee { background-color: #fff3cd; color: #664d03; }
+        td.status-terminee { background-color: #d1e7dd; color: #0f5132; }
+        td.status-abandonnee { background-color: #e2d5f3; color: #432874; }
+
+        body.dark-theme td.status-en-cours { background-color: #004578; color: #ffffff; }
+        body.dark-theme td.status-bloquee { background-color: #845700; color: #ffffff; }
+        body.dark-theme td.status-terminee { background-color: #107c41; color: #ffffff; }
+        body.dark-theme td.status-abandonnee { background-color: #4c3c73; color: #ffffff; }
+
+        /* Coloration des IDs en parallèle */
+        td.parallel-id { background-color: #e6fffa !important; color: #0d9488 !important; font-weight: bold; text-align: center; }
+        body.dark-theme td.parallel-id { background-color: #112c24 !important; color: #2dd4bf !important; }
+
+        /* Structure Éditeur de Notes Natif */
+        .editor-toolbar { display: flex; gap: 6px; background: var(--header-bg); padding: 8px; border: 1px solid var(--border); border-bottom: none; border-radius: 6px 6px 0 0; }
+        .editor-btn { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; min-width: 34px; text-align: center; }
+        .editor-btn:hover { background: var(--hover-bg); border-color: var(--primary); }
+        .editor-content { min-height: 380px; border: 1px solid var(--border); border-radius: 0 0 6px 6px; padding: 20px; background: var(--input-bg); color: var(--text); overflow-y: auto; line-height: 1.5; }
+        .editor-content:focus { outline: 1px solid var(--primary); }
+        .editor-content[placeholder]:empty:before { content: attr(placeholder); color: #a19f9d; font-style: italic; }
+
+        /* Gantt & Chemin critique */
+        .gantt-container { margin-top: 20px; border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; background: var(--card-bg); }
+        .gantt-header { display: flex; background: var(--header-bg); border-bottom: 2px solid var(--border); font-weight: bold; }
+        .gantt-row { display: flex; border-bottom: 1px solid var(--border); align-items: center; height: 42px; position: relative; background: var(--card-bg); }
+        .gantt-label { width: 300px; min-width: 300px; padding: 10px; border-right: 1px solid var(--border); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 3; background: inherit; }
+        .gantt-timeline { flex: 1; position: relative; height: 100%; background: var(--gantt-bg); }
+        .gantt-bar { position: absolute; top: 8px; height: 26px; border-radius: 4px; display: flex; align-items: center; color: white; font-size: 11px; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: all 0.2s; }
+        
+        .gantt-bar.a-demarrer { background-color: #a19f9d; }
+        .gantt-bar.en-cours { background-color: #0078d4; }
+        .gantt-bar.bloquee { background-color: #d83b01; }
+        .gantt-bar.terminee { background-color: #107c41; }
+        .gantt-bar.abandonnee { background-color: #8764b8; }
+        
+        /* Outline critique */
+        .gantt-bar.critical { border: 2px solid #e81123 !important; box-shadow: 0 0 8px rgba(232, 17, 35, 0.7); }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <button class="btn btn-secondary" onclick="toggleDarkMode()" id="theme-btn" style="margin-bottom: 15px;">🌓 Mode Sombre</button>
+        
+        <label class="btn" style="display: block; text-align: center; margin-bottom: 15px;">
+            📂 Charger un projet (.json)
+            <input type="file" id="file-uploader" accept=".json" style="display: none;" onchange="handleFileImport(this)">
+        </label>
+        
+        <h3 style="margin-top:10px; margin-bottom:5px;">Nouveau Projet</h3>
+        <div style="display: flex; gap: 6px; margin-bottom: 15px;">
+            <input type="text" id="new-proj-name" placeholder="Nom du projet..." style="flex: 1; padding: 8px;">
+            <button class="btn" onclick="createNewProject()" style="width: auto; margin: 0; white-space: nowrap;">➕ Créer</button>
+        </div>
+
+        <h3 style="margin-top:10px; margin-bottom:5px;">Projet Actuel</h3>
+        <div id="active-project-container">
+            <div style="color:#a19f9d; font-style:italic; font-size:14px;">Aucun fichier chargé</div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div id="no-project-message" style="margin: auto; text-align: center; color: #a19f9d;">
+            <h2>Aucun projet sélectionné</h2>
+            <p>Chargez un fichier .json ou initialisez un nouveau projet à gauche pour commencer.</p>
+        </div>
+
+        <div id="project-view" style="display: none; height: 100%; flex-direction: column;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h2 id="current-project-title" style="margin:0;">Nom du projet</h2>
+                <button class="btn" style="width:auto; margin:0;" onclick="saveCurrentProject()">💾 Enregistrer (Télécharger .json)</button>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('description')">Description</button>
+                <button class="tab" onclick="switchTab('plan-action')">Plan d'action & Risques</button>
+                <button class="tab" onclick="switchTab('planning')">Planning (Gantt)</button>
+                <button class="tab" onclick="switchTab('notes')">Notes & CR</button>
+            </div>
+
+            <div id="tab-description" class="tab-content active">
+                <div class="form-group">
+                    <label>Titre du projet :</label>
+                    <input type="text" id="p-title" oninput="document.getElementById('current-project-title').innerText = this.value; updateSidebarDisplay();">
+                </div>
+                <div class="form-group">
+                    <label>Statut du projet :</label>
+                    <select id="p-status" onchange="updateSidebarDisplay()">
+                        <option value="Cadrage">Cadrage</option>
+                        <option value="en cours">En cours</option>
+                        <option value="terminé">Terminé</option>
+                        <option value="abandonné">Abandonné</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Code Projet :</label>
+                    <input type="text" id="p-code" placeholder="Ex: PRJ-2026-01">
+                </div>
+                <div class="form-group">
+                    <label>Alias Client / Usage :</label>
+                    <input type="text" id="p-alias" placeholder="Nom d'usage différent chez le client">
+                </div>
+                <div class="form-group">
+                    <label>Chef de projet (PM) :</label>
+                    <input type="text" id="p-pm">
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Date début Initiale :</label>
+                        <input type="date" id="p-start-init">
+                    </div>
+                    <div class="form-group">
+                        <label>Date début Révisée :</label>
+                        <input type="date" id="p-start-rev">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Date fin Initiale :</label>
+                        <input type="date" id="p-end-init">
+                    </div>
+                    <div class="form-group">
+                        <label>Date fin Révisée :</label>
+                        <input type="date" id="p-end-rev">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Budget Validé (€) :</label>
+                    <input type="number" id="p-budget">
+                </div>
+                <div class="form-group">
+                    <label>Charge Totale (JH) :</label>
+                    <input type="number" id="p-jh" oninput="updateTableAnalysis()">
+                </div>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label>Lien Demande Metis :</label>
+                    <div style="display: flex; gap: 12px; align-items: center; width: 100%;">
+                        <input type="text" id="p-metis" placeholder="Collez l'URL Metis ici (ex: https://...)" oninput="updateMetisLink()">
+                        <a id="btn-metis" href="#" target="_blank" style="color: var(--primary); font-weight: bold; text-decoration: underline; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;">
+                            🔗 Ouvrir le lien
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-plan-action" class="tab-content">
+                <h3>Plan d'action</h3>
+                
+                <div class="import-zone">
+                    <label><strong>Import Excel :</strong> Copiez vos lignes Excel (Entêtes cibles : Chapitre, ID, Équipe, Description, Statut, Début, Échéance, Révisée, Prédécesseur, Commentaire, JH) :</label>
+                    <textarea id="excel-paste-actions" placeholder="Collez ici les lignes copier d'Excel..." oninput="importExcelActions()"></textarea>
+                </div>
+
+                <table id="table-actions" oninput="updateTableAnalysis()">
+                    <thead>
+                        <tr>
+                            <th>Chapitre / Stream</th><th>ID</th><th>Équipe réalisatrice</th><th>Description de l'action</th><th style="width: 140px;">Statut</th><th>Date Début</th><th>Échéance</th><th>Date Révisée</th><th>Prédécesseur</th><th>Commentaire</th><th>Poids (JH)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr style="background: var(--header-bg); font-weight: bold;">
+                            <td colspan="10" style="text-align: right; font-weight: 600;">Total Poids Actions / Charge Totale Projet :</td>
+                            <td id="total-jh-cell" style="font-weight: bold; text-align: left; white-space: nowrap;">0 / 0 JH</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <button class="btn btn-secondary" style="width:auto;" onclick="addRow('table-actions', 11)">+ Ajouter une ligne d'action</button>
+
+                <hr style="border:0; border-top:1px solid var(--border); margin:30px 0;">
+
+                <h3>Risques, Imprévus & Adhérences</h3>
+                <table id="table-risks">
+                    <thead>
+                        <tr>
+                            <th>Date Découverte</th><th>Description</th><th>ID Actions relatives</th><th>Action de remédiation</th><th>Échéance</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <button class="btn btn-secondary" style="width:auto;" onclick="addRow('table-risks', 5)">+ Ajouter un risque / événement</button>
+            </div>
+
+            <div id="tab-planning" class="tab-content"></div>
+
+            <div id="tab-notes" class="tab-content">
+                <h3>Prise de notes & Comptes rendus</h3>
+                <div class="editor-toolbar">
+                    <button class="editor-btn" onclick="formatText('bold')" title="Gras"><b>G</b></button>
+                    <button class="editor-btn" onclick="formatText('italic')" title="Italique"><i>I</i></button>
+                    <button class="editor-btn" onclick="formatText('underline')" title="Souligné"><u>S</u></button>
+                    <button class="editor-btn" onclick="formatText('insertUnorderedList')" title="Liste à puces">• Liste</button>
+                    <button class="editor-btn" onclick="formatText('insertOrderedList')" title="Liste numérotée">1. Liste</button>
+                    <button class="editor-btn" onclick="formatText('removeFormat')" title="Effacer la mise en forme" style="font-weight: normal; font-style: italic; color: #d83b01;">Rx</button>
+                </div>
+                <div id="notes-editor" class="editor-content" contenteditable="true" placeholder="Rédigez vos notes, comptes rendus ou ordres du jour ici..."></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentProjectData = null;
+        let currentFilename = null;
+
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-theme');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('theme') === 'dark') {
+                const btn = document.getElementById('theme-btn');
+                if(btn) btn.innerText = '☀️ Mode Clair';
+            }
+        });
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-theme');
+            const isDark = document.body.classList.contains('dark-theme');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            
+            const btn = document.getElementById('theme-btn');
+            if(btn) btn.innerText = isDark ? '☀️ Mode Clair' : '🌓 Mode Sombre';
+            
+            document.querySelectorAll('#table-actions select').forEach(select => updateStatusCellColor(select));
+        }
+
+        function formatText(command) {
+            document.execCommand(command, false, null);
+            document.getElementById('notes-editor').focus();
+        }
+
+        function updateMetisLink() {
+            const urlInput = document.getElementById('p-metis').value.trim();
+            const linkEl = document.getElementById('btn-metis');
+            
+            if (urlInput) {
+                if (!urlInput.startsWith('http://') && !urlInput.startsWith('https://')) {
+                    linkEl.href = 'https://' + urlInput;
+                } else {
+                    linkEl.href = urlInput;
+                }
+                linkEl.style.opacity = "1";
+                linkEl.style.pointerEvents = "auto";
+                linkEl.onclick = null;
+            } else {
+                linkEl.href = "#";
+                linkEl.style.opacity = "0.4";
+                linkEl.onclick = function(e) {
+                    e.preventDefault();
+                    alert("Veuillez d'abord renseigner une URL dans le champ de saisie.");
+                };
+            }
+        }
+
+        function updateTableAnalysis() {
+            updateJHTotals();
+            updateParallelTasks();
+        }
+
+        function updateJHTotals() {
+            const tbody = document.querySelector('#table-actions tbody');
+            let sumActions = 0;
+            
+            if (tbody) {
+                Array.from(tbody.rows).forEach(row => {
+                    if (row.cells.length >= 11 && !row.dataset.streamHeader) {
+                        const cellVal = row.cells[10].innerText.trim();
+                        const val = parseFloat(cellVal) || 0;
+                        sumActions += val;
+                    }
+                });
+            }
+            
+            const targetGlobal = parseFloat(document.getElementById('p-jh').value) || 0;
+            const totalCell = document.getElementById('total-jh-cell');
+            
+            if (totalCell) {
+                totalCell.innerText = `${sumActions} / ${targetGlobal} JH`;
+                
+                if (sumActions > targetGlobal && targetGlobal > 0) {
+                    totalCell.style.color = '#d83b01'; 
+                    totalCell.title = "Attention : La somme des charges du plan d'action dépasse la capacité totale affectée !";
+                } else if (sumActions === targetGlobal && targetGlobal > 0) {
+                    totalCell.style.color = '#107c41'; 
+                    totalCell.title = "Parfait : La planification couvre exactement la charge totale définie.";
+                } else {
+                    totalCell.style.color = 'currentColor';
+                    totalCell.title = "";
+                }
+            }
+        }
+
+        function updateParallelTasks() {
+            const tbody = document.querySelector('#table-actions tbody');
+            if (!tbody) return;
+
+            const globalStartStr = document.getElementById('p-start-rev').value || document.getElementById('p-start-init').value;
+            const globalEndStr = document.getElementById('p-end-rev').value || document.getElementById('p-end-init').value;
+            const pStart = globalStartStr ? new Date(globalStartStr) : null;
+            const pEnd = globalEndStr ? new Date(globalEndStr) : null;
+
+            let tasks = [];
+
+            Array.from(tbody.rows).forEach((row, idx) => {
+                if (row.dataset.streamHeader) return; 
+                
+                const idCell = row.cells[1];
+                if (!idCell) return;
+                
+                idCell.classList.remove('parallel-id'); 
+                idCell.removeAttribute('title');
+
+                const startStr = row.cells[5].innerText.trim();
+                const endStr = row.cells[7].innerText.trim() || row.cells[6].innerText.trim();
+                const jh = parseFloat(row.cells[10].innerText.trim()) || 0;
+
+                let tStart = startStr ? new Date(startStr) : null;
+                let tEnd = endStr ? new Date(endStr) : null;
+
+                if (!tStart && tEnd && jh) tStart = new Date(tEnd.getTime() - (jh * 24 * 60 * 60 * 1000));
+                if (!tEnd && tStart && jh) tEnd = new Date(tStart.getTime() + (jh * 24 * 60 * 60 * 1000));
+                if (!tStart && pStart) tStart = pStart;
+                if (!tEnd && pEnd) tEnd = pEnd;
+
+                if (tStart && tEnd && !isNaN(tStart.getTime()) && !isNaN(tEnd.getTime()) && tStart < tEnd) {
+                    tasks.push({ rowIndex: idx, id: idCell.innerText.trim() || `Ligne ${idx+1}`, start: tStart, end: tEnd });
+                }
+            });
+
+            let parallelIndices = new Set();
+            
+            for (let i = 0; i < tasks.length; i++) {
+                for (let j = i + 1; j < tasks.length; j++) {
+                    if (tasks[i].start < tasks[j].end && tasks[j].start < tasks[i].end) {
+                        parallelIndices.add(tasks[i].rowIndex);
+                        parallelIndices.add(tasks[j].rowIndex);
+                    }
+                }
+            }
+
+            parallelIndices.forEach(idx => {
+                const idCell = tbody.rows[idx].cells[1];
+                if (idCell) {
+                    idCell.classList.add('parallel-id');
+                    idCell.title = "Cette action s'exécute en parallèle avec au moins une autre tâche.";
+                }
+            });
+        }
+
+        function toggleGanttStream(headerEl, streamName) {
+            const labelEl = headerEl.querySelector('.gantt-label');
+            const container = headerEl.parentElement;
+            const childRows = container.querySelectorAll(`div[data-gantt-child="${CSS.escape(streamName)}"]`);
+            
+            if (childRows.length > 0) {
+                const isCollapsed = childRows[0].style.display === 'none';
+                childRows.forEach(row => {
+                    row.style.display = isCollapsed ? 'flex' : 'none';
+                });
+                if (labelEl) {
+                    labelEl.innerHTML = isCollapsed ? `📂 Stream: ${streamName}` : `📁 Stream: ${streamName}`;
+                }
+            }
+        }
+
+        // PLAN B : MISE À JOUR VISUELLE ÉPURÉE DE L'ÉTAT DU PROJET SUR LA SIDEBAR
+        function updateSidebarDisplay() {
+            const container = document.getElementById('active-project-container');
+            if (!currentProjectData) {
+                container.innerHTML = `<div style="color:#a19f9d; font-style:italic; font-size:14px;">Aucun fichier chargé</div>`;
+                return;
+            }
+
+            const title = currentProjectData.title || "Sans titre";
+            const status = document.getElementById('p-status').value || "Cadrage";
+            
+            let statusColor = "#0078d4"; // Bleu Cadrage default
+            if (status === "en cours") statusColor = "#107c41"; // Vert
+            if (status === "terminé" || status === "abandonné") statusColor = "#a19f9d"; // Gris Archive
+
+            container.innerHTML = `
+                <div class="active-project-box" style="border-left-color: ${statusColor} !important;">
+                    <strong>${title}</strong><br>
+                    <span style="font-size:12px; opacity:0.8;">Statut : ${status}</span>
+                </div>
+            `;
+        }
+
+        // PLAN B : FONCTION D'IMPORTATION DE FICHIER LOCAL (.JSON) UNIVERSELLE
+        function handleFileImport(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            currentFilename = file.name;
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    currentProjectData = JSON.parse(e.target.result);
+                    bindProjectDataToUI();
+                } catch (err) {
+                    alert("Erreur de lecture : Ce fichier n'est pas un JSON de projet valide.");
+                }
+            };
+            reader.readAsText(file);
+            input.value = ""; // Reset input
+        }
+
+        // COUPLAGE DES DONNÉES DU JSON AVEC L'INTERFACE
+        function bindProjectDataToUI() {
+            document.getElementById('no-project-message').style.display = 'none';
+            document.getElementById('project-view').style.display = 'flex';
+
+            document.getElementById('current-project-title').innerText = currentProjectData.title || currentFilename;
+            document.getElementById('p-title').value = currentProjectData.title || "";
+            document.getElementById('p-status').value = currentProjectData.status || "Cadrage";
+            document.getElementById('p-code').value = currentProjectData.code || "";
+            document.getElementById('p-alias').value = currentProjectData.alias || "";
+            document.getElementById('p-pm').value = currentProjectData.pm || "";
+            document.getElementById('p-start-init').value = currentProjectData.startInit || "";
+            document.getElementById('p-start-rev').value = currentProjectData.startRev || "";
+            document.getElementById('p-end-init').value = currentProjectData.endInit || "";
+            document.getElementById('p-end-rev').value = currentProjectData.endRev || "";
+            document.getElementById('p-budget').value = currentProjectData.budget || 0;
+            document.getElementById('p-jh').value = currentProjectData.jh || 0;
+            document.getElementById('p-metis').value = currentProjectData.metisUrl || "";
+            document.getElementById('notes-editor').innerHTML = currentProjectData.notes || "";
+
+            updateMetisLink(); 
+            updateSidebarDisplay();
+
+            renderTable('table-actions', currentProjectData.actions || [], 11);
+            renderTable('table-risks', currentProjectData.risks || [], 5);
+            document.getElementById('excel-paste-actions').value = '';
+            switchTab('description');
+        }
+
+        // PLAN B : CONFIGURATION DES PARAMÈTRES POUR UN NOUVEAU PROJET IN-MEMORY
+        function createNewProject() {
+            const nameInput = document.getElementById('new-proj-name');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                alert("Veuillez saisir un nom dans le champ prévu.");
+                return;
+            }
+
+            const currentDateStr = new Date().toLocaleDateString('fr-FR');
+            const genericNotesTemplate = `<h1>📋 Compte Rendu de Suivi de Projet : ${name}</h1>
+<p><b>Informations Générales :</b></p>
+<ul>
+    <li><b>Client :</b> [Nom du Client]</li>
+    <li><b>Chef de Projet :</b> [Votre Nom]</li>
+    <li><b>Date de création du document :</b> ${currentDateStr}</li>
+    <li><b>Version :</b> v1.0</li>
+</ul>
+<hr>
+<h2>1. Réunion de Cadrage (Compréhension du Besoin)</h2>
+<p><i>Cette réunion vise à valider la vision technique et opérationnelle avec l'architecte et la prod.</i></p>
+<ul>
+    <li><b>Date :</b> [JJ/MM/AAAA]</li>
+    <li><b>Participants :</b> [Noms]</li>
+</ul>
+<h3>🎯 Objectifs & Compréhension du Besoin</h3>
+<ul>
+    <li>[Besoin exprimé]</li>
+</ul>
+<h3>⚡ Actions à mener</h3>
+<table>
+    <thead><tr><th>Réf</th><th>Action</th><th>Responsable</th><th>Échéance</th><th>Statut</th></tr></thead>
+    <tbody><tr><td>CAD-01</td><td>Valider l'architecture cible</td><td>[Nom]</td><td>[Date]</td><td>À faire</td></tr></tbody>
+</table>`;
+
+            currentFilename = `${name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
+            currentProjectData = { title: name, status: "Cadrage", code: "", alias: "", pm: "", startInit: "", startRev: "", endInit: "", endRev: "", budget: 0, jh: 0, metisUrl: "", notes: genericNotesTemplate, actions: [], risks: [] };
+            
+            nameInput.value = ""; 
+            bindProjectDataToUI();
+        }
+
+        // PLAN B : EXPORTATION UNIVERSELLE DU SCRIPT JSON EN MODE TÉLÉCHARGEMENT DIRECT
+        function saveCurrentProject() {
+            if (!currentProjectData) return;
+
+            // Récolte les modifications en cours
+            currentProjectData.title = document.getElementById('p-title').value;
+            currentProjectData.status = document.getElementById('p-status').value;
+            currentProjectData.code = document.getElementById('p-code').value;
+            currentProjectData.alias = document.getElementById('p-alias').value;
+            currentProjectData.pm = document.getElementById('p-pm').value;
+            currentProjectData.startInit = document.getElementById('p-start-init').value;
+            currentProjectData.startRev = document.getElementById('p-start-rev').value;
+            currentProjectData.endInit = document.getElementById('p-end-init').value;
+            currentProjectData.endRev = document.getElementById('p-end-rev').value;
+            currentProjectData.budget = document.getElementById('p-budget').value;
+            currentProjectData.jh = document.getElementById('p-jh').value;
+            currentProjectData.metisUrl = document.getElementById('p-metis').value.trim();
+            currentProjectData.notes = document.getElementById('notes-editor').innerHTML;
+
+            currentProjectData.actions = collectTableData('table-actions');
+            currentProjectData.risks = collectTableData('table-risks');
+
+            // Génération du Blob de téléchargement sécurisé compatible toutes plateformes
+            const jsonString = JSON.stringify(currentProjectData, null, 2);
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const dlLink = document.createElement('a');
+            dlLink.href = url;
+            dlLink.download = currentFilename || `${currentProjectData.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
+            
+            document.body.appendChild(dlLink);
+            dlLink.click();
+            document.body.removeChild(dlLink);
+            
+            URL.revokeObjectURL(url);
+            updateSidebarDisplay();
+        }
+
+        function updateStatusCellColor(select) {
+            const td = select.parentElement;
+            td.className = ''; 
+            const val = select.value;
+            if (val === "en cours") td.classList.add('status-en-cours');
+            else if (val === "bloquée/retardée") td.classList.add('status-bloquee');
+            else if (val === "terminée") td.classList.add('status-terminee');
+            else if (val === "abandonnée") td.classList.add('status-abandonnee');
+            select.style.backgroundColor = "transparent";
+            select.style.color = "currentColor";
+        }
+
+        function renderTable(tableId, data, colCount) {
+            const table = document.getElementById(tableId);
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+            const tbody = table.getElementsByTagName('tbody')[0];
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                addRow(tableId, colCount);
+                return;
+            }
+
+            if (tableId === 'table-actions') {
+                const streams = {};
+                data.forEach(rowData => {
+                    let streamName = "";
+                    if (Array.isArray(rowData)) {
+                        streamName = rowData[0] || 'Général';
+                    } else if (rowData && typeof rowData === 'object') {
+                        streamName = rowData["Chapitre / Stream"] || 'Général';
+                    }
+                    streamName = streamName.trim() || 'Général';
+                    if (!streams[streamName]) streams[streamName] = [];
+                    streams[streamName].push(rowData);
+                });
+
+                Object.keys(streams).forEach(streamName => {
+                    const hasEnCours = streams[streamName].some(rowData => {
+                        if (Array.isArray(rowData)) return rowData[4] === 'en cours';
+                        return rowData && rowData["Statut"] === 'en cours';
+                    });
+
+                    const headerTr = document.createElement('tr');
+                    headerTr.style.background = 'var(--hover-bg)';
+                    headerTr.style.cursor = 'pointer';
+                    headerTr.style.fontWeight = 'bold';
+                    headerTr.dataset.streamHeader = streamName;
+                    headerTr.dataset.expanded = hasEnCours ? "true" : "false";
+
+                    const headerTd = document.createElement('td');
+                    headerTd.colSpan = colCount;
+                    headerTd.style.padding = "10px";
+                    headerTd.innerHTML = `${hasEnCours ? '📂' : '📁'} <b>Stream: ${streamName}</b> <span style="font-weight:normal; font-size:12px; color:#a19f9d; padding-left:10px;">(${streams[streamName].length} action(s) ${hasEnCours ? '— Déplié (Actif)' : '— Replié'})</span>`;
+                    headerTr.appendChild(headerTd);
+                    tbody.appendChild(headerTr);
+
+                    streams[streamName].forEach(rowData => {
+                        const tr = document.createElement('tr');
+                        tr.dataset.streamChild = streamName;
+                        tr.style.display = hasEnCours ? '' : 'none'; 
+
+                        buildRowCells(tr, rowData, tableId, colCount, headers);
+                        tbody.appendChild(tr);
+                    });
+
+                    headerTr.onclick = () => {
+                        const isExpanded = headerTr.dataset.expanded === "true";
+                        headerTr.dataset.expanded = isExpanded ? "false" : "true";
+                        headerTd.innerHTML = `${isExpanded ? '📁' : '📂'} <b>Stream: ${streamName}</b> <span style="font-weight:normal; font-size:12px; color:#a19f9d; padding-left:10px;">(${streams[streamName].length} action(s) ${!isExpanded ? '— Déplié' : '— Replié'})</span>`;
+                        
+                        const childRows = tbody.querySelectorAll(`tr[data-stream-child="${CSS.escape(streamName)}"]`);
+                        childRows.forEach(r => r.style.display = isExpanded ? 'none' : '');
+                    };
+                });
+            } else {
+                data.forEach(rowData => {
+                    const tr = document.createElement('tr');
+                    buildRowCells(tr, rowData, tableId, colCount, headers);
+                    tbody.appendChild(tr);
+                });
+            }
+            if(tableId === 'table-actions') updateTableAnalysis();
+        }
+
+        function buildRowCells(tr, rowData, tableId, colCount, headers) {
+            for (let i = 0; i < colCount; i++) {
+                const td = document.createElement('td');
+                let cellValue = "";
+                if (Array.isArray(rowData)) {
+                    cellValue = rowData[i] || '';
+                } else if (rowData && typeof rowData === 'object') {
+                    cellValue = rowData[headers[i]] || '';
+                }
+
+                if (tableId === 'table-actions' && i === 4) {
+                    td.contentEditable = "false";
+                    const select = document.createElement('select');
+                    select.style.width = "100%"; select.style.border = "none"; select.style.outline = "none";
+                    const options = ["à démarrer", "en cours", "bloquée/retardée", "terminée", "abandonnée"];
+                    options.forEach(opt => {
+                        const o = document.createElement('option'); o.value = opt; o.innerText = opt;
+                        if(cellValue === opt) o.selected = true;
+                        select.appendChild(o);
+                    });
+                    select.onchange = () => {
+                        updateStatusCellColor(select);
+                        updateTableAnalysis();
+                    };
+                    td.appendChild(select);
+                    updateStatusCellColor(select);
+                } else {
+                    td.contentEditable = "true";
+                    td.innerText = cellValue;
+                }
+                tr.appendChild(td);
+            }
+        }
+
+        function addRow(tableId, colCount) {
+            const tbody = document.getElementById(tableId).getElementsByTagName('tbody')[0];
+            const tr = document.createElement('tr');
+            for (let i = 0; i < colCount; i++) {
+                const td = document.createElement('td');
+                if (tableId === 'table-actions' && i === 4) {
+                    td.contentEditable = "false";
+                    const select = document.createElement('select');
+                    select.style.width = "100%"; select.style.border = "none"; select.style.outline = "none";
+                    const options = ["à démarrer", "en cours", "bloquée/retardée", "terminée", "abandonnée"];
+                    options.forEach(opt => { const o = document.createElement('option'); o.value = opt; o.innerText = opt; select.appendChild(o); });
+                    select.onchange = () => {
+                        updateStatusCellColor(select);
+                        updateTableAnalysis();
+                    };
+                    td.appendChild(select);
+                    updateStatusCellColor(select);
+                } else {
+                    td.contentEditable = "true";
+                }
+                tr.appendChild(td);
+            }
+            tbody.appendChild(tr);
+            if(tableId === 'table-actions') updateTableAnalysis();
+        }
+
+        function collectTableData(tableId) {
+            const table = document.getElementById(tableId);
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+            const rows = table.getElementsByTagName('tbody')[0].rows;
+            const data = [];
+            
+            for (let i = 0; i < rows.length; i++) {
+                if (rows[i].dataset.streamHeader || rows[i].cells.length === 1) continue;
+
+                const rowCells = rows[i].cells;
+                const rowObj = {};
+                let hasContent = false;
+                
+                for (let j = 0; j < rowCells.length; j++) {
+                    let val = "";
+                    if (tableId === 'table-actions' && j === 4) {
+                        const sel = rowCells[j].querySelector('select');
+                        val = sel ? sel.value : "à démarrer";
+                    } else {
+                        val = rowCells[j].innerText.trim();
+                    }
+                    if(val) hasContent = true;
+                    rowObj[headers[j]] = val;
+                }
+                if(hasContent) data.push(rowObj);
+            }
+            return data;
+        }
+
+        function importExcelActions() {
+            const text = document.getElementById('excel-paste-actions').value;
+            if(!text.trim()) return;
+            const lines = text.split('\n');
+            const importedData = [];
+
+            lines.forEach((line, index) => {
+                if(!line.trim()) return;
+                const columns = line.split('\t');
+                if(index === 0 && (columns[0].toLowerCase().includes('id') || columns[1].toLowerCase().includes('id') || columns[2].toLowerCase().includes('desc'))) return;
+                
+                let aligned = Array(11).fill("");
+                if (columns.length === 8) {
+                    aligned[0] = "Général"; aligned[1] = columns[0]; aligned[2] = columns[1]; aligned[3] = columns[2];
+                    aligned[4] = columns[3]; aligned[5] = ""; aligned[6] = columns[4]; aligned[7] = columns[5];
+                    aligned[8] = ""; aligned[9] = columns[6]; aligned[10] = columns[7];
+                } else if (columns.length === 7) {
+                    aligned[0] = "Général"; aligned[1] = columns[0]; aligned[2] = columns[1]; aligned[3] = columns[2];
+                    aligned[4] = "à démarrer"; aligned[5] = ""; aligned[6] = columns[3]; aligned[7] = columns[4];
+                    aligned[8] = ""; aligned[9] = columns[5]; aligned[10] = columns[6];
+                } else {
+                    for(let k=0; k < Math.min(columns.length, 11); k++) aligned[k] = columns[k];
+                    if(columns.length < 5) aligned[4] = "à démarrer";
+                }
+                importedData.push(aligned);
+            });
+            if(importedData.length > 0) renderTable('table-actions', importedData, 11);
+        }
+
+        function generatePlanningView() {
+            const container = document.getElementById('tab-planning');
+            const startStr = document.getElementById('p-start-rev').value || document.getElementById('p-start-init').value;
+            const endStr = document.getElementById('p-end-rev').value || document.getElementById('p-end-init').value;
+            
+            let headerHtml = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h3 style="margin:0;">Planning / Diagramme de Gantt</h3>
+                    <button class="btn" style="width:auto; margin:0;" onclick="generatePlanningView()">🔄 Recalculer le planning</button>
+                </div>`;
+
+            if (!startStr || !endStr) {
+                container.innerHTML = headerHtml + `<p style="color:#a19f9d; font-style:italic; padding:10px;">⚠️ Définissez les dates globales du projet dans l'onglet Description.</p>`;
+                return;
+            }
+
+            const pStart = new Date(startStr); const pEnd = new Date(endStr);
+            if (pStart >= pEnd) {
+                container.innerHTML = headerHtml + `<p style="color:#d83b01; padding:10px;">⚠️ La date de début doit précéder la date de fin globale.</p>`;
+                return;
+            }
+
+            const totalTime = pEnd.getTime() - pStart.getTime();
+            const totalDays = totalTime / (1000 * 60 * 60 * 24);
+
+            let months = [];
+            let current = new Date(pStart.getFullYear(), pStart.getMonth(), 1);
+            let endMonth = new Date(pEnd.getFullYear(), pEnd.getMonth(), 1);
+            while (current <= endMonth) { months.push(new Date(current)); current.setMonth(current.getMonth() + 1); }
+
+            let intervals = []; let tCurrent = new Date(pStart);
+            months.forEach(mStart => {
+                let mEnd = new Date(mStart.getFullYear(), mStart.getMonth() + 1, 1);
+                let iStart = (tCurrent > mStart) ? tCurrent : mStart;
+                let iEnd = (pEnd < mEnd) ? pEnd : mEnd;
+                let days = (iEnd.getTime() - iStart.getTime()) / (1000 * 60 * 60 * 24);
+                if (days > 0) { 
+                    intervals.push({ 
+                        label: mStart.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }), 
+                        pct: (days / totalDays) * 100,
+                        start: new Date(iStart),
+                        end: new Date(iEnd)
+                    }); 
+                }
+                tCurrent = iEnd;
+            });
+
+            const actions = collectTableData('table-actions');
+            
+            let tasksMap = {};
+            actions.forEach((row, idx) => {
+                const id = (row["ID"] || '').trim() || `_row_${idx}`;
+                const taskStartStr = (row["Date Début"] || '').trim();
+                const taskEndStr = ((row["Date Révisée"] || '').trim() || (row["Échéance"] || '').trim());
+                let jh = parseFloat(row["Poids (JH)"]) || 0;
+
+                let tEnd = taskEndStr ? new Date(taskEndStr) : null;
+                let tStart = taskStartStr ? new Date(taskStartStr) : null;
+
+                if (!tStart && tEnd && jh) tStart = new Date(tEnd.getTime() - (jh * 24 * 60 * 60 * 1000));
+                if (!tEnd && tStart && jh) tEnd = new Date(tStart.getTime() + (jh * 24 * 60 * 60 * 1000));
+                if (!tStart) tStart = new Date(pStart);
+                if (!tEnd) tEnd = new Date(pEnd);
+
+                tasksMap[id] = { id, row, start: tStart, end: tEnd, pred: (row["Prédécesseur"] || '').trim(), isCritical: false };
+            });
+
+            let maxEndTime = 0; let finalTask = null;
+            Object.values(tasksMap).forEach(t => {
+                if (t.end.getTime() > maxEndTime) { maxEndTime = t.end.getTime(); finalTask = t; }
+            });
+
+            let visited = new Set(); let curr = finalTask;
+            while (curr && !visited.has(curr.id)) {
+                visited.add(curr.id);
+                curr.isCritical = true;
+                if (curr.pred && tasksMap[curr.pred]) curr = tasksMap[curr.pred];
+                else curr = null;
+            }
+
+            let streamGroups = {};
+            Object.values(tasksMap).forEach(t => {
+                const streamName = (t.row["Chapitre / Stream"] || 'Général').trim() || 'Général';
+                if (!streamGroups[streamName]) streamGroups[streamName] = [];
+                streamGroups[streamName].push(t);
+            });
+
+            let html = headerHtml + `<div class="gantt-container">`;
+            html += `<div class="gantt-header"><div class="gantt-label" style="display:flex; align-items:center;">Actions du plan</div><div style="flex:1; display:flex; position:relative;">`;
+            intervals.forEach(int => { 
+                html += `<div style="width:${int.pct}%; border-right:1px solid var(--border); display:flex; flex-direction:column; justify-content:space-between; text-align:center;">`;
+                html += `<div style="padding:4px 0; font-size:12px; border-bottom:1px solid var(--border);">${int.label}</div>`;
+                html += `<div style="display:flex; flex:1; font-size:9px; font-weight:normal; background: var(--sidebar-bg); color: var(--text);">`;
+                
+                let msDiff = int.end.getTime() - int.start.getTime();
+                let numDays = Math.round(msDiff / (1000 * 60 * 60 * 24));
+                for (let d = 0; d < numDays; d++) {
+                    let tempDate = new Date(int.start);
+                    tempDate.setDate(tempDate.getDate() + d);
+                    let dayNum = tempDate.getDate();
+                    html += `<div style="flex:1; text-align:center; border-right:1px solid rgba(0,0,0,0.05); padding:2px 0; min-width:0; overflow:hidden;" title="${tempDate.toLocaleDateString('fr-FR')}">${dayNum}</div>`;
+                }
+                html += `</div></div>`;
+            });
+            html += `</div></div>`;
+
+            let baseLinesHtml = '';
+            let currentLeft = 0;
+            intervals.forEach((int, idx) => {
+                if (idx < intervals.length - 1) { currentLeft += int.pct; baseLinesHtml += `<div style="position:absolute; left:${currentLeft}%; top:0; bottom:0; border-left:1px dashed var(--border); z-index:1; pointer-events:none;"></div>`; }
+            });
+
+            const today = new Date();
+            if (today >= pStart && today <= pEnd) {
+                const todayPct = ((today.getTime() - pStart.getTime()) / totalTime) * 100;
+                baseLinesHtml += `<div style="position:absolute; left:${todayPct}%; top:0; bottom:0; border-left:2px dotted #e81123; z-index:10; pointer-events:none;" title="Aujourd'hui (${today.toLocaleDateString('fr-FR')})"></div>`;
+            }
+
+            Object.keys(streamGroups).forEach(streamName => {
+                const hasEnCours = streamGroups[streamName].some(t => t.row["Statut"] === "en cours");
+
+                let minStreamStart = null;
+                let maxStreamEnd = null;
+                streamGroups[streamName].forEach(t => {
+                    if (!minStreamStart || t.start < minStreamStart) minStreamStart = t.start;
+                    if (!maxStreamEnd || t.end > maxStreamEnd) maxStreamEnd = t.end;
+                });
+
+                let sStart = new Date(minStreamStart); let sEnd = new Date(maxStreamEnd);
+                if (sStart < pStart) sStart = new Date(pStart);
+                if (sEnd > pEnd) sEnd = new Date(pEnd);
+
+                const sLeftPct = ((sStart.getTime() - pStart.getTime()) / totalTime) * 100;
+                let sWidthPct = ((sEnd.getTime() - sStart.getTime()) / totalTime) * 100;
+                if (sWidthPct < 2) sWidthPct = 2;
+
+                html += `<div class="gantt-row" style="background: var(--header-bg); font-weight: bold; height:36px; cursor:pointer;" onclick="toggleGanttStream(this, '${streamName.replace(/'/g, "\\'")}')" data-gantt-header="${streamName}">`;
+                html += `<div class="gantt-label" style="color: var(--primary); font-weight:bold;">${hasEnCours ? '📂' : '📁'} Stream: ${streamName}</div>`;
+                html += `<div class="gantt-timeline">`;
+                html += baseLinesHtml;
+                html += `<div class="gantt-bar" style="left:${sLeftPct}%; width:${sWidthPct}%; background-color: var(--primary); opacity: 0.35; height: 14px; top: 11px; border-radius: 4px; z-index:2; box-shadow:none;" title="Durée totale planifiée pour le chapitre [${streamName}]"></div>`;
+                html += `</div></div>`;
+
+                streamGroups[streamName].forEach(t => {
+                    const id = t.row["ID"] || '';
+                    const desc = t.row["Description de l'action"] || '';
+                    const statusStr = t.row["Statut"] || 'à démarrer';
+                    
+                    let rStart = new Date(t.start); let rEnd = new Date(t.end);
+                    if (rStart < pStart) rStart = new Date(pStart);
+                    if (rEnd > pEnd) rEnd = new Date(pEnd);
+                    if (rEnd < pStart || rStart > pEnd) return;
+
+                    const leftPct = ((rStart.getTime() - pStart.getTime()) / totalTime) * 100;
+                    let widthPct = ((rEnd.getTime() - rStart.getTime()) / totalTime) * 100;
+                    if (widthPct < 2) widthPct = 2;
+
+                    let statusClass = "a-demarrer";
+                    if (statusStr === "en cours") statusClass = "en-cours";
+                    else if (statusStr === "bloquée/retardée") statusClass = "bloquee";
+                    else if (statusStr === "terminée") statusClass = "terminee";
+                    else if (statusStr === "abandonnée") statusClass = "abandonnee";
+
+                    const critClass = t.isCritical ? " critical" : "";
+                    const critBadge = t.isCritical ? " 🔥" : "";
+                    const jh = t.row["Poids (JH)"] || 0;
+
+                    html += `<div class="gantt-row" data-gantt-child="${streamName}" style="${hasEnCours ? 'display: flex;' : 'display: none;'}">`;
+                    html += `<div class="gantt-label" title="[${id}] ${desc}${critBadge ? ' (Critique)' : ''}"><strong>[${id}]</strong> ${desc}${critBadge}</div>`;
+                    html += `<div class="gantt-timeline">`;
+                    html += baseLinesHtml;
+
+                    html += `<div class="gantt-bar ${statusClass}${critClass}" style="left:${leftPct}%; width:${widthPct}%; z-index:2;" title="${desc}\nStatut: ${statusStr}\nCharge: ${jh} JH${t.pred ? '\nPrédécesseur: '+t.pred : ''}">`;
+                    html += `<span style="padding-left:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${jh} JH</span></div>`;
+                    html += `</div></div>`;
+                });
+            });
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            if (tabName === 'description') {
+                document.querySelector(".tab:nth-child(1)").classList.add('active'); document.getElementById('tab-description').classList.add('active');
+            } else if (tabName === 'plan-action') {
+                document.querySelector(".tab:nth-child(2)").classList.add('active'); document.getElementById('tab-plan-action').classList.add('active');
+                updateTableAnalysis(); 
+            } else if (tabName === 'planning') {
+                document.querySelector(".tab:nth-child(3)").classList.add('active'); document.getElementById('tab-planning').classList.add('active');
+                generatePlanningView();
+            } else if (tabName === 'notes') {
+                document.querySelector(".tab:nth-child(4)").classList.add('active'); document.getElementById('tab-notes').classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>
