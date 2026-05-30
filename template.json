@@ -1,0 +1,53 @@
+{
+  "title": "template",
+  "status": "Cadrage",
+  "code": "PRJ-2026-01",
+  "alias": "nom_appli_client",
+  "pm": "[{\"date\":\"29/05/2026\",\"name\":\"nom_chef_de_projet\"}]",
+  "clientPm": "chef_de_projet_client",
+  "startInit": "2026-05-01",
+  "startRev": "",
+  "endInit": "2026-05-31",
+  "endRev": "",
+  "budget": "0",
+  "jh": "0",
+  "metisUrl": "",
+  "cadrageUrl": "",
+  "estimationUrl": "",
+  "notes": "# 📋 Compte Rendu de Suivi de Projet : [Nom du Projet]\n## Informations Générales :\n\nClient : [Nom du Client]\n\nChef de Projet : [Votre Nom]\n\nArchitecte : [Son Nom]\n\n\n# 1. Cadrage\nCette réunion vise à valider la vision technique et opérationnelle avec l'architecte et la prod.\n\nDate : [JJ/MM/AAAA]\n\nParticipants : * Client : [Noms]\n\nArchitecte : [Nom]\n\nIngénierie d'Exploitation (Ops) : [Noms]\n\nAutres équipe CA-GIP :\n\n\n\n## 🎯 Objectifs & Compréhension du Besoin\n[Résumer ici en 2-3 phrases le besoin principal exprimé par le client]\n\nAttentes clés du client : [Ex: Haute disponibilité, scalabilité, budget restreint...]\n\n## 🏗️ Échanges Techniques (Architecture & Exploitation)\nValidation de l'Architecture : [Points clés validés ou à étudier par l'architecte]\n\nContraintes d'Exploitation / RUN : [Remarques des ingénieurs d'exploitation : monitoring, sauvegardes, sécurité...]\n\n## ⚡ Actions à mener (Cadrage)\n\nRéf\tAction\tResponsable\tÉchéance\tStatut\nCAD-01\tValider le schéma d'architecture cible\t[Nom]\t[Date]\tÀ faire / En cours\nCAD-02\tFournir la matrice des flux réseau\tClient\t[Date]\tÀ faire\n\n---------------------------------------------------\n\n# 2. Kick-off (Lancement Officiel du Projet)\nRéunion d'alignement global avec l'équipe projet complète et le client.\n\nDate : [JJ/MM/AAAA]\n\nParticipants : [Équipe Projet complète + Client]\n## 🚀 Présentation du Projet & Périmètre\nRappel des objectifs : [Rappel succinct]\n\nPérimètre (In / Out) :\n\n✅ Dans le projet : [Élément 1], [Élément 2]\n\n❌ Hors projet : [Élément 1], [Élément 2]\n\n## 📅 Gouvernance & Planning\nGouvernance validée : Fréquence des CoProj [Ex: Hebdomadaire / Bimensuel]\n\nJalons clés (Milestones) :\n\n- [Jalon 1] : [Date visée]\n\n- [Jalon 2 (Go-Live)] : [Date visée]\n\n## ⚡ Actions à mener (Kick-off)\nRéf\tAction\tResponsable\tÉchéance\tStatut\nKO-01\tPartager les accès aux outils (Jira, Confluence...)\t[Nom]\t[Date]\tÀ faire\nKO-02\tPlanifier les invitations pour les CoProj\t[Nom]\t[Date]\tÀ faire\n\n---------------------------------------------------\n\n# 3. Comités de Projet (CoProj)\nCette section est à dupliquer/alimenter à chaque nouvelle instance de CoProj.\n\n🗓️ CoProj n°[X] – Date : [JJ/MM/AAAA]\n📈 État d'Avancement Global\n🟢 Statut : [Vert / Orange / Rouge]\n\nCommentaire rapide sur la météo du projet (ex: Planning respecté, attention sur la livraison des prérequis).\n\n## 🔍 Points abordés durant la séance\nSuivi des tâches : [Résumé de ce qui a été produit depuis le dernier CoProj]\n\nFocus technique / fonctionnel : [Sujet spécifique discuté aujourd'hui]\n\n## ⚠️ Alertes, Bloqueurs & Arbitrages\nPoint d'attention : [Ex: Retard sur la mise à disposition des serveurs de test]\n\nArbitrage requis : [Ex: Choix de la date de MEP finale par le client]\n\n## 📋 Plan d'Action Mis à Jour (CoProj)\nRéf\tSujet / Action\tResponsable\tÉchéance\tStatut\nCPX-01\tLivrer l'environnement de Recette\tÉquipe Ops\t[Date]\tEn cours\nCPX-02\tValider les cas de test (UAT)\tClient\t[Date]\tÀ faire\nCAD-02\tRappel: Fournir la matrice des flux\tClient\t[Date]\tEn retard\nProchain rendez-vous : CoProj n°[X+1] le [Date] à [Heure].\n",
+  "actions": [
+    {
+      "Chapitre / Stream": "stream_1",
+      "ID": "A1",
+      "Prédécesseur": "",
+      "ID / Préd.": "{\"id\":\"A1\",\"pred\":\"\"}",
+      "Équipe réalisatrice": "Equipe_1",
+      "Priorité": "P2",
+      "Description de l'action": "exemple",
+      "Statut": "à démarrer",
+      "Planning (Début ➜ Fin)": "{\"start\":\"2026-05-01\",\"end\":\"2026-05-04\",\"rev\":\"\"}",
+      "Commentaire": "[{\"date\":\"30/05/2026\",\"text\":\"commentaire\"}]",
+      "Poids (JH)": ""
+    }
+  ],
+  "risks": [
+    {
+      "Date Découverte": "2026-05-06",
+      "Description": "exemple",
+      "ID Actions relatives": "A1",
+      "Action de remédiation": "exemple",
+      "Échéance": "2026-05-07"
+    }
+  ],
+  "externalRequests": [
+    {
+      "Type de Demande": "exemple_type",
+      "Référence / ID": "RITMxxxx",
+      "Équipe / Instance Cible": "Equipe_1",
+      "Description / Objet": "exemple",
+      "Statut": "à démarrer",
+      "Dates (Demande ➜ Échéance)": "{\"start\":\"2026-05-05\",\"end\":\"2026-05-06\",\"rev\":\"\"}",
+      "Commentaire / Lien": "[{\"date\":\"30/05/2026\",\"text\":\"commentaire\"}]"
+    }
+  ]
+}
