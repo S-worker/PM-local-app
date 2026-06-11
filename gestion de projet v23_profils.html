@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire de Projets Local Pro</title>
+    <!-- Icone SVG intégrée directement en Data-URI -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect x='2' y='4' width='8' height='4' rx='1.5' fill='%232b579a'/><rect x='11' y='10' width='11' height='4' rx='1.5' fill='%234f81bd'/><rect x='6' y='16' width='12' height='4' rx='1.5' fill='%23107c41'/></svg>">
+    
+    <style>
+        /* ==========================================================================
+           DESIGN SYSTEM - VARIABLES & THEMES (Style SaaS Moderne)
+           ========================================================================== */
+        :root {
+            --primary: #2b579a;
+            --primary-hover: #1e3d6b;
+            --bg: #f8f9fa;
+            --sidebar-bg: #ffffff;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --input-bg: #ffffff;
+            --header-bg: #f1f5f9;
+            --hover-bg: #f1f5f9;
+            --gantt-bg: #fafafa;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.dark-theme {
+            --primary: #4f81bd;
+            --primary-hover: #6ea0dd;
+            --bg: #0f1115;
+            --sidebar-bg: #161b22;
+            --card-bg: #1f242c;
+            --border: #2d333b;
+            --text: #c9d1d9;
+            --text-secondary: #8b949e;
+            --input-bg: #161b22;
+            --header-bg: #262c36;
+            --hover-bg: #2d333b;
+            --gantt-bg: #181c24;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        body { margin: 0; display: flex; height: 100vh; color: var(--text); background-color: var(--bg); transition: var(--transition); overflow: hidden; }
+
+        #sidebar { width: 310px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; transition: var(--transition); overflow: hidden; flex-shrink: 0; }
+        #sidebar.collapsed { width: 0; padding: 20px 0; border-right: none; }
+        #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 25px; position: relative; }
+
+        .profile-selector-wrapper { background: var(--header-bg); border: 1px solid var(--border); padding: 12px; border-radius: var(--radius-md); margin-bottom: 15px; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 25px; margin-top: 10px; }
+        .kpi-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; box-shadow: var(--shadow); text-align: center; border-top: 4px solid var(--primary); transition: var(--transition); }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.06); }
+        .kpi-value { font-size: 26px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+        .kpi-label { font-size: 11px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .btn { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: var(--transition); width: 100%; font-size: 13.5px; }
+        .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn-secondary { background: var(--header-bg); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--hover-bg); }
+        .btn-icon { width: 32px; height: 32px; padding: 0; border-radius: var(--radius-sm); background: transparent; border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: var(--transition); }
+        .btn-icon:hover { color: var(--text); background: var(--hover-bg); border-color: var(--text-secondary); }
+
+        .search-wrapper { position: relative; margin-bottom: 15px; }
+        .search-wrapper input { padding-left: 32px; font-size: 13px; border-radius: var(--radius-sm); }
+        .search-wrapper svg { position: absolute; left: 10px; top: 10px; color: var(--text-secondary); pointer-events: none; }
+
+        .project-section-title { font-size: 11px; font-weight: 700; margin-top: 20px; margin-bottom: 8px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.8; white-space: nowrap; }
+        .proj-list-group { list-style: none; padding: 0; margin: 0 0 10px 0; white-space: nowrap; }
+        .proj-list-group li { padding: 9px 14px; cursor: pointer; border-radius: var(--radius-sm); color: var(--text); font-size: 14px; margin-bottom: 5px; transition: var(--transition); border-left: 4px solid transparent; display: flex; align-items: center; justify-content: space-between; }
+        .proj-list-group li:hover { background: var(--hover-bg); padding-left: 18px; }
+        .proj-list-group li.active { background: var(--hover-bg); font-weight: 700; border-left-color: var(--primary); }
+        
+        .proj-cadrage { border-left-color: #0078d4; }
+        .proj-encours { border-left-color: #107c41; }
+        .proj-archive { border-left-color: #a19f9d; opacity: 0.7; }
+        
+        .archive-details { margin-top: 15px; white-space: nowrap; }
+        .archive-summary { font-size: 11px; font-weight: 700; cursor: pointer; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; outline: none; padding: 4px 0; }
+
+        .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 20px; gap: 8px; }
+        .tab { padding: 12px 20px; cursor: pointer; border: none; background: none; font-size: 14.5px; color: var(--text-secondary); font-weight: 600; position: relative; transition: var(--transition); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+        .tab:hover { color: var(--text); background: var(--hover-bg); }
+        .tab.active { color: var(--primary); font-weight: 700; }
+        .tab.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: var(--primary); border-radius: 3px 3px 0 0; }
+        
+        .tab-content { display: none; flex: 1; overflow-y: auto; background: var(--card-bg); padding: 24px; border-radius: var(--radius-md); box-shadow: var(--shadow); border: 1px solid var(--border); }
+        .tab-content.active { display: block; }
+
+        .form-group { margin-bottom: 16px; display: grid; grid-template-columns: 200px 1fr; align-items: center; gap: 15px; }
+        label { font-weight: 600; font-size: 14px; color: var(--text); }
+        input, textarea, select { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); width: 100%; background: var(--input-bg); color: var(--text); transition: var(--transition); font-size: 13.5px; }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(43, 87, 154, 0.15); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 25px; }
+        th, td { border: 1px solid var(--border); padding: 10px 12px; text-align: left; font-size: 13.5px; color: var(--text); vertical-align: middle; transition: var(--transition); }
+        th { background: var(--header-bg); font-weight: 700; color: var(--text); }
+        tbody tr:hover { background-color: rgba(0,0,0,0.01); }
+        body.dark-theme tbody tr:hover { background-color: rgba(255,255,255,0.01); }
+        
+        .import-zone { background: var(--header-bg); padding: 15px; border: 2px dashed #a19f9d; border-radius: var(--radius-md); margin-bottom: 20px; }
+        .import-zone textarea { height: 60px; background: var(--input-bg); }
+
+        td.status-en-cours { background-color: rgba(13, 110, 253, 0.12) !important; color: #0d6efd !important; font-weight: 600; }
+        td.status-bloquee { background-color: rgba(255, 193, 7, 0.15) !important; color: #b48604 !important; font-weight: 600; }
+        td.status-terminee { background-color: rgba(25, 135, 84, 0.12) !important; color: #198754 !important; font-weight: 600; }
+        td.status-abandonnee { background-color: rgba(111, 66, 193, 0.12) !important; color: #6f42c1 !important; font-weight: 600; }
+
+        body.dark-theme td.status-en-cours { background-color: rgba(13, 110, 253, 0.25) !important; color: #6ea0dd !important; }
+        body.dark-theme td.status-bloquee { background-color: rgba(255, 193, 7, 0.25) !important; color: #ffda6a !important; }
+        body.dark-theme td.status-terminee { background-color: rgba(25, 135, 84, 0.25) !important; color: #75b798 !important; }
+        body.dark-theme td.status-abandonnee { background-color: rgba(111, 66, 193, 0.25) !important; color: #a370f7 !important; }
+
+        td.parallel-id { background-color: rgba(45, 212, 191, 0.12) !important; color: #0d9488 !important; font-weight: bold; text-align: center; }
+        body.dark-theme .parallel-id { background-color: rgba(45, 212, 191, 0.2) !important; color: #2dd4bf !important; }
+
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 15px; background: var(--header-bg); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); align-items: center; flex-wrap: wrap; }
+        .filter-bar label { font-size: 12px; font-weight: bold; color: var(--text-secondary); }
+        .filter-bar select, .filter-bar input { width: auto; min-width: 150px; padding: 5px 10px; font-size: 12px; }
+
+        .kanban-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 15px; height: auto; min-height: 400px; align-items: start; }
+        .kanban-column { background: var(--header-bg); border-radius: var(--radius-md); padding: 14px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; min-height: 250px; }
+        .kanban-column-header { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .kanban-column-header .count { background: rgba(0,0,0,0.06); padding: 2px 6px; border-radius: 20px; font-size: 11px; }
+        body.dark-theme .kanban-column-header .count { background: rgba(255,255,255,0.06); }
+        .cards-container { display: flex; flex-direction: column; gap: 10px; min-height: 200px; }
+        .kanban-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 8px; transition: var(--transition); cursor: default; }
+        .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(0,0,0,0.06); border-color: var(--text-secondary); }
+        .kanban-card-title { font-weight: 600; font-size: 13.5px; }
+        .kanban-card-stream { font-size: 11px; font-weight: bold; background: var(--header-bg); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; align-self: start; }
+        .kanban-card-meta { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+        .kanban-card-actions { display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px; border-top: 1px dashed var(--border); padding-top: 6px; }
+
+        .gantt-container { margin-top: 20px; border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; flex-direction: column; background: var(--card-bg); box-shadow: var(--shadow); }
+        .gantt-header { display: flex; background: var(--header-bg); border-bottom: 2px solid var(--border); font-weight: bold; }
+        .gantt-row { display: flex; border-bottom: 1px solid var(--border); align-items: center; height: 42px; position: relative; background: var(--card-bg); transition: background-color 0.15s; }
+        .gantt-row:hover { background-color: rgba(43, 87, 154, 0.03) !important; }
+        .gantt-label { width: 300px; min-width: 300px; padding: 10px; border-right: 1px solid var(--border); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 3; background: inherit; }
+        .gantt-timeline { flex: 1; position: relative; height: 100%; background: var(--gantt-bg); }
+        .gantt-bar { position: absolute; top: 8px; height: 26px; border-radius: 4px; display: flex; align-items: center; color: white; font-size: 11px; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: var(--transition); cursor: help; }
+        
+        .gantt-bar.a-demarrer { background-color: #94a3b8; }
+        .gantt-bar.en-cours { background-color: #3b82f6; }
+        .gantt-bar.bloquee { background-color: #ef4444; }
+        .gantt-bar.terminee { background-color: #10b981; }
+        .gantt-bar.abandonnee { background-color: #8b5cf6; }
+        .gantt-bar.critical { border: 2px solid #dc2626 !important; box-shadow: 0 0 10px rgba(220, 38, 38, 0.5); }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(4px); }
+        .modal-container { background: var(--card-bg); color: var(--text); padding: 35px; border-radius: var(--radius-lg); max-width: 850px; width: 90%; max-height: 85vh; overflow-y: auto; border: 1px solid var(--border); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); position: relative; }
+        .modal-close { position: absolute; top: 20px; right: 25px; font-size: 24px; cursor: pointer; color: var(--text-secondary); font-weight: bold; transition: var(--transition); }
+        .modal-close:hover { color: #dc2626; transform: scale(1.1); }
+        .modal-container h1, .modal-container h2, .modal-container h3 { color: var(--primary); margin-top: 25px; margin-bottom: 12px; }
+        .modal-container h2 { border-left: 4px solid var(--primary); padding-left: 10px; font-size: 18px; }
+        .modal-container h3 { font-size: 15px; }
+        .modal-container ul, .modal-container ol { padding-left: 22px; margin-bottom: 15px; }
+        .modal-container li { margin-bottom: 6px; font-size: 14px; }
+        .modal-container p { font-size: 14px; line-height: 1.6; margin-bottom: 14px; }
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================================================
+       BARRE LATÉRALE (SIDEBAR) : Actions globales, Profiling, et liste de projets
+       ========================================================================== */ -->
+    <div id="sidebar">
+        <!-- Commutateur de thème -->
+        <button class="btn btn-secondary" onclick="toggleDarkMode()" id="theme-btn" style="margin-bottom: 10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            <span>🌓 Mode Sombre</span>
+        </button>
+
+        <!-- SÉLECTEUR DE PROFIL UTILISATEUR -->
+        <div class="profile-selector-wrapper">
+            <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 6px;">👤 Profil Actif :</label>
+            <select id="profile-select" onchange="handleProfileSwitch(this.value)" style="font-weight: 600;">
+                <option value="pm">Chef de Projet (PM)</option>
+                <option value="direction">Direction / Stratégique</option>
+            </select>
+        </div>
+
+        <!-- BOUTON DU MANUEL UTILISATEUR -->
+        <button class="btn btn-secondary" onclick="openUserManual()" style="margin-bottom: 15px; border-color: var(--primary); color: var(--primary);">
+            <span>📖 Manuel Utilisateur</span>
+        </button>
+
+        <!-- File System Access API pointé vers l'espace OneDrive local -->
+        <button class="btn" onclick="initFolder()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+            <span>Ouvrir OneDrive</span>
+        </button>
+        
+        <!-- Création d'une nouvelle instance projet (.json autonome) -->
+        <h3 style="margin-top:20px; margin-bottom:5px; font-size:15px; white-space:nowrap;">Nouveau Projet</h3>
+        <div style="display: flex; gap: 6px; margin-bottom: 15px;">
+            <div class="search-wrapper" style="margin-bottom:0; flex:1;">
+                <input type="text" id="new-proj-name" placeholder="Nom du projet..." onkeydown="if(event.key === 'Enter' && !document.getElementById('new-proj-btn').disabled) createNewProject()">
+            </div>
+            <button class="btn" onclick="createNewProject()" id="new-proj-btn" disabled style="width: auto; margin: 0; padding: 0 12px;">➕</button>
+        </div>
+
+        <!-- Mes Projets -->
+        <h3 style="margin-top:10px; margin-bottom:5px; font-size:15px; white-space:nowrap;">Mes Projets</h3>
+        <div class="search-wrapper">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="project-search" placeholder="Rechercher un projet..." oninput="filterProjectList()">
+        </div>
+
+        <!-- Arbre de rendu des projets chargés -->
+        <div id="project-list" style="flex: 1; overflow-y: auto; margin: 5px 0;">
+            <div style="color:var(--text-secondary); font-style:italic; font-size:13px;">Veuillez ouvrir un dossier...</div>
+        </div>
+
+        <!-- Propriété intellectuelle -->
+        <div style="font-size: 11px; color: var(--text-secondary); opacity: 0.8; margin-top: 15px; text-align: left; padding-top: 10px; border-top: 1px dashed var(--border); line-height: 1.4; display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+            <span>Designé et développé avec l'IA par Jérémy LE PRÉ <br></span><img src="logo_dvt.png" alt="Devoteam" style="height: 11px; vertical-align: middle; display: inline-block;"><span></span>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+       ESPACE DE TRAVAIL PRINCIPAL (MAIN CONTENT) : Gestion active de l'instance
+       ========================================================================== */ -->
+    <div id="main-content">
+        <!-- Toggle d'affichage/masquage de la Sidebar -->
+        <button class="btn-icon" onclick="toggleSidebar()" title="Afficher/Masquer la barre latérale" style="position: absolute; top: 20px; left: 20px; z-index: 999; width: 36px; height: 36px; background: var(--card-bg);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+
+        <!-- Écran d'accueil neutre (Fallback si aucun projet sélectionné en mode PM) -->
+        <div id="no-project-message" style="margin: auto; text-align: center; color: var(--text-secondary);">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="opacity: 0.5; margin-bottom: 10px;"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M9 14l2 2 4-4"/></svg>
+            <h2>Aucun projet sélectionné</h2>
+            <p>Sélectionnez ou créez un projet dans la colonne de gauche pour commencer ou changez de profil utilisateur.</p>
+        </div>
+
+        <!-- VUE PORTFOLIO : DIRECTION / STRATÉGIQUE -->
+        <div id="portfolio-view" style="display: none; height: 100%; flex-direction: column; overflow-y: auto; padding-left: 45px;">
+            <div id="direction-dashboard">
+                <h2 style="margin: 0 0 5px 0;">📊 Tableau de Bord Stratégique</h2>
+                <div class="dashboard-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-value" id="kpi-active-projects">0</div>
+                        <div class="kpi-label">Projets Actifs</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value" id="kpi-total-budget">0 K€</div>
+                        <div class="kpi-label">Budget Global Validé</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value" id="kpi-total-jh">0 JH</div>
+                        <div class="kpi-label">Charge Portefeuille</div>
+                    </div>
+                    <div class="kpi-card" style="border-top-color: #ef4444;">
+                        <div class="kpi-value" id="kpi-blocked-actions" style="color: #ef4444;">0</div>
+                        <div class="kpi-label">Actions Bloquées</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 id="portfolio-title" style="margin:0;">🔍 Exploration du Portefeuille Direction</h2>
+            </div>
+            
+            <!-- Module de filtrage global par priorité de projet dans la vue direction -->
+            <div class="filter-bar" style="margin-bottom: 15px;">
+                <label>⚡ Filtrer par Priorité Projet :</label>
+                <select id="portfolio-priority-filter" onchange="renderPortfolioTable()" style="width: auto; min-width: 200px;">
+                    <option value="">Toutes les priorités (P1, P2, P3)</option>
+                    <option value="P1">P1</option>
+                    <option value="P2">P2 (>50JH)</option>
+                    <option value="P3">P3 (<50JH)</option>
+                </select>
+            </div>
+            
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; box-shadow: var(--shadow);">
+                <table id="table-portfolio">
+                    <thead>
+                        <tr>
+                            <th style="width: 100px; text-align: center;">Explore</th>
+                            <th>Code Projet</th>
+                            <th>Nom du Projet</th>
+                            <th>Client</th>
+                            <th>Chef de Projet</th>
+                            <th>Statut</th>
+                            <th style="color: #dc2626; text-align: center;">🚨 Nb Alertes</th>
+                            <th style="color: #d97706; text-align: center;">🚫 Tâches Bloquées</th>
+                            <th>Deadline Client</th>
+                            <th>Budget (K€)</th>
+                            <th>Charge (JH)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="11" style="text-align:center; font-style:italic; color:var(--text-secondary);">Veuillez ouvrir un dossier local pour analyser le portefeuille.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Conteneur principal de la vue Projet -->
+        <div id="project-view" style="display: none; height: 100%; flex-direction: column;">
+            <!-- Header de l'instance courante -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding-left: 50px;">
+                <h2 style="margin:0; font-size:22px; letter-spacing:-0.3px; display: flex; align-items: center; gap: 12px;">
+                    <!-- BOUTON RETOUR POUR LE PROFIL DIRECTION -->
+                    <button class="btn btn-secondary" id="portfolio-back-btn" onclick="returnToPortfolio()" style="width: auto; padding: 6px 12px; font-size: 13px; display: none;">
+                        ⬅️ Retour Portfolio
+                    </button>
+                    <span id="current-project-title">Nom du projet</span>
+                    <span id="current-project-filename" style="font-size: 13px; color: var(--text-secondary); font-weight: normal; font-family: monospace;"></span>
+                </h2>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" style="width:auto; margin:0; background-color: #107c41;" onclick="saveCurrentProject()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        <span>Enregistrer</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Barre de navigation des Onglets de l'application -->
+            <div class="tabs">
+                <button class="tab" onclick="switchTab('description')">Description</button>
+                <button class="tab" onclick="switchTab('contexte')">Contexte & Infos</button>
+                <button class="tab" onclick="switchTab('plan-action')">Plan d'action & Risques</button>
+                <button class="tab" onclick="switchTab('kanban')">Vue Kanban</button>
+                <button class="tab" onclick="switchTab('planning')">Planning (Gantt)</button>
+                <button class="tab" onclick="switchTab('notes')">Notes & CR</button>
+            </div>
+
+            <!-- ==========================================================================
+               ONGLET : DESCRIPTION
+               ========================================================================== -->
+            <div id="tab-description" class="tab-content">
+                <div class="form-group">
+                    <label>Titre du projet :</label>
+                    <input type="text" id="p-title" oninput="document.getElementById('current-project-title').innerText = this.value">
+                </div>
+                <div class="form-group">
+                    <label>Statut du projet :</label>
+                    <select id="p-status">
+                        <option value="Cadrage">Cadrage</option>
+                        <option value="en cours">En cours</option>
+                        <option value="terminé">Terminé</option>
+                        <option value="abandonné">Abandonné</option>
+                    </select>
+                </div>
+                <!-- CHAMP : PROJET PRIORITAIRE -->
+                <div class="form-group">
+                    <label>Projet prioritaire :</label>
+                    <select id="p-project-priority">
+                        <option value="P1">P1</option>
+                        <option value="P2">P2 (&gt;50JH)</option>
+                        <option value="P3">P3 (&lt;50JH)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Code Projet :</label>
+                    <input type="text" id="p-code" placeholder="Ex: PRJ-2026-01">
+                </div>
+                <div class="form-group">
+                    <label>Code applicatif / produit :</label>
+                    <input type="text" id="p-app-code" placeholder="Ex: Fxx - nom_appli">
+                </div>
+                <div class="form-group">
+                    <label>Alias Client / Usage :</label>
+                    <input type="text" id="p-alias" placeholder="Nom d'usage différent chez le client">
+                </div>
+                <div class="form-group">
+                    <label>Chef de projet :</label>
+                    <div id="p-pm-box" style="position:relative; cursor:pointer; padding:10px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--input-bg); min-height:38px; display:flex; align-items:center;"></div>
+                </div>
+                <div class="form-group">
+                    <label>CdP client :</label>
+                    <input type="text" id="p-client-pm" placeholder="Nom du Chef de projet chez le client">
+                </div>
+
+                <div class="grid-2" style="margin-bottom: 16px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Date envoi Estimation :</label>
+                        <input type="date" id="p-date-estimation">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Date validation client :</label>
+                        <input type="date" id="p-date-validation">
+                    </div>
+                </div>
+
+                <div class="form-group" style="border: 1px dashed var(--primary); padding: 10px; border-radius: var(--radius-sm); background: rgba(43,87,154,0.03);">
+                    <label style="color: var(--primary);">🎯 Date fin impérative client :</label>
+                    <input type="date" id="p-deadline" onchange="updateTableAnalysis()">
+                </div>
+
+                <input type="hidden" id="p-start-init">
+                <input type="hidden" id="p-start-rev">
+                <input type="hidden" id="p-end-init">
+                <input type="hidden" id="p-end-rev">
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Planning Global (Initial ➜ Révisé) :</label>
+                        <div id="p-global-planning-box" style="position:relative; cursor:pointer; padding:10px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--input-bg); min-height:38px; display:flex; align-items:center;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Dates Réelles Calculées :</label>
+                        <div id="p-calculated-dates" style="padding:10px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--header-bg); font-weight:bold; color:var(--primary); min-height:38px; display:flex; align-items:center;">
+                            ⏱️ Aucune action planifiée
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Budget Validé (K€) :</label>
+                        <input type="number" id="p-budget">
+                    </div>
+                    <div class="form-group">
+                        <label>Charge Totale (JH) :</label>
+                        <input type="number" id="p-jh" oninput="updateTableAnalysis()">
+                    </div>
+                </div>
+
+                <div style="margin-top: 25px;">
+                    <h3 style="margin-bottom: 12px; color: var(--primary); font-size:16px;">👥 Tableau des Participants</h3>
+                    <table id="table-participants">
+                        <thead>
+                            <tr>
+                                <th>Cluster / Socle / client</th>
+                                <th>Équipe</th>
+                                <th style="width: 280px;">Personne (Historique)</th>
+                                <th style="width: 180px;">Disponibilité / jour (%)</th>
+                                <th style="width: 40px; text-align: center;">🗑️</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <button class="btn btn-secondary" style="width:auto;" onclick="addRow('table-participants', 5)">+ Ajouter un participant</button>
+                </div>
+                
+                <div style="margin-top: 25px;">
+                    <h3 style="margin-bottom: 12px; color: var(--primary); font-size:16px;">🔗 Liens Utiles & Livrables</h3>
+                    <table id="table-project-links" style="margin-top: 0; margin-bottom: 15px;">
+                        <thead>
+                            <tr>
+                                <th style="width: 220px;">Type de Document</th>
+                                <th>Saisie de l'URL</th>
+                                <th style="width: 130px; text-align: center;">Lien Direct</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><b>Demande Metis</b></td>
+                                <td><input type="text" id="p-metis" placeholder="Collez l'URL Metis ici..." oninput="updateProjectLinks()"></td>
+                                <td style="text-align: center;"><a id="btn-metis" href="#" target="_blank" rel="noopener noreferrer" style="color: var(--primary); font-weight: bold; opacity: 0.4; pointer-events: none;">🔗 Ouvrir</a></td>
+                            </tr>
+                            <tr>
+                                <td><b>Note de Cadrage</b></td>
+                                <td><input type="text" id="p-cadrage" placeholder="Collez l'URL de la note de cadrage ici..." oninput="updateProjectLinks()"></td>
+                                <td style="text-align: center;"><a id="btn-cadrage" href="#" target="_blank" rel="noopener noreferrer" style="color: var(--primary); font-weight: bold; opacity: 0.4; pointer-events: none;">🔗 Ouvrir</a></td>
+                            </tr>
+                            <tr>
+                                <td><b>Estimation</b></td>
+                                <td><input type="text" id="p-estimation" placeholder="Collez l'URL de l'estimation ici..." oninput="updateProjectLinks()"></td>
+                                <td style="text-align: center;"><a id="btn-estimation" href="#" target="_blank" rel="noopener noreferrer" style="color: var(--primary); font-weight: bold; opacity: 0.4; pointer-events: none;">🔗 Ouvrir</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ==========================================================================
+               ONGLET : CONTEXTE & INFOS MANAGEMENT
+               ========================================================================== -->
+            <div id="tab-contexte" class="tab-content">
+                <h3 style="margin-bottom: 20px; color: var(--primary); font-size:16px;">🏢 Contexte & Infos Management</h3>
+                <div class="form-group">
+                    <label>Client :</label>
+                    <select id="p-client-type">
+                        <option value="">-- Sélectionner un client --</option>
+                        <option value="CA-PFM Fr">CA-PFM Fr</option>
+                        <option value="CA-PFM Corp">CA-PFM Corp</option>
+                        <option value="CA-LF">CA-LF</option>
+                    </select>
+                </div>
+                <div class="form-group" style="align-items: flex-start;">
+                    <label style="margin-top: 10px;">Contexte projet :</label>
+                    <textarea id="p-contexte" rows="3" placeholder="Ex : projet lié à l'outil GED..."></textarea>
+                </div>
+                <div class="form-group" style="align-items: flex-start;">
+                    <label style="margin-top: 10px;">Descriptif du projet :</label>
+                    <textarea id="p-descriptif" rows="4" placeholder="Ex : mise en place de nouveau flux vers le mainframe..."></textarea>
+                </div>
+                <div class="form-group" style="align-items: flex-start;">
+                    <label style="margin-top: 10px;">Impacts pour le client :</label>
+                    <textarea id="p-impacts" rows="4" placeholder="Ex : Permettra de partager des infos de l'appli X au Mainframe pour un reporting mensu de meilleure qualité..."></textarea>
+                </div>
+            </div>
+
+            <!-- ==========================================================================
+               ONGLET : PLAN D'ACTION, RISQUES & ADHÉRENCES
+               ========================================================================== -->
+            <div id="tab-plan-action" class="tab-content">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h3 style="margin:0;">Plan d'action</h3>
+                    <button class="btn btn-secondary" style="width:auto; padding:6px 12px; font-size:12px;" onclick="exportToCSV('table-actions', 'plan_actions')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Exporter CSV
+                    </button>
+                </div>
+                
+                <div class="filter-bar">
+                    <label>Filtres rapides :</label>
+                    <select id="filter-status" onchange="applyActionFilters()"><option value="">Tous les statuts</option><option value="à démarrer">À démarrer</option><option value="en cours">En cours</option><option value="bloquée/retardée">Bloquée/Retardée</option><option value="terminée">Terminée</option></select>
+                    <input type="text" id="filter-team" placeholder="Filtrer par équipe..." oninput="applyActionFilters()">
+                    <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="resetActionFilters()">Effacer</button>
+                </div>
+                
+                <div class="import-zone">
+                    <label style="font-size:13px;"><strong>Import Excel rapide :</strong> Copiez vos colonnes (Chapitre, ID, Équipe, Priorité, Description, Statut, Début, Échéance, Révisée, Prédécesseur, Commentaire, JH) et collez-les ci-dessous :</label>
+                    <textarea id="excel-paste-actions" placeholder="Collez vos lignes de tableau Excel ici..." oninput="importExcelActions()"></textarea>
+                </div>
+
+                <table id="table-actions" oninput="updateTableAnalysis()">
+                    <thead>
+                        <tr>
+                            <th>Chapitre / Stream</th><th style="width: 120px;">ID / Préd.</th><th>Équipe réalisatrice</th><th style="width: 90px;">Priorité</th><th>Description de l'action</th><th style="width: 140px;">Statut</th><th style="width: 170px;">Planning (Début ➜ Fin)</th><th class="retro-col" style="width: 170px; display: none;">Rétro-planning</th><th>Commentaire</th><th class="jh-col">Poids (JH)</th><th style="width: 40px; text-align: center;">🗑️</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr style="background: var(--header-bg); font-weight: bold;">
+                            <td colspan="8" style="text-align: right; font-weight: 600;">Total Poids Actions / Charge Totale Projet :</td>
+                            <td id="total-jh-cell" class="jh-col" style="font-weight: bold; text-align: left; white-space: nowrap;">0 / 0 JH</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+                    <button class="btn btn-secondary" style="width:auto;" onclick="addRow('table-actions', 11, true)">+ Ajouter une ligne d'action</button>
+                    <button class="btn btn-secondary" style="width:auto; border-color: var(--primary); color: var(--primary);" onclick="syncRealizatorsToParticipants()">👥 Ajouter équipes réalisatrices aux participants</button>
+                    <button class="btn btn-secondary" style="width:auto; border-color: #2b579a; color: #2b579a;" onclick="toggleRetroColumn()">👁️ Afficher/Masquer Rétro-planning</button>
+                    <button class="btn btn-secondary" style="width:auto; border-color: #2b579a; color: #2b579a;" onclick="toggleJhColumn()">👁️ Afficher/Masquer Poids (JH)</button>
+                    <button class="btn btn-secondary" style="width:auto; border-color: #dc2626; color: #dc2626; font-weight: 700;" onclick="runRetroPlanning()">⏳ Calculer le Rétro-planning</button>
+                </div>
+
+                <hr style="border:0; border-top:1px solid var(--border); margin:30px 0;">
+                <h3>Demandes Externes & Adhérences Équipes</h3>
+                <table id="table-external-requests">
+                    <thead>
+                        <tr>
+                            <th>Type de Demande</th><th>Référence / ID</th><th>Équipe / Instance Cible</th><th>Description / Objet</th><th style="width: 140px;">Statut</th><th style="width: 170px;">Dates (Demande ➜ Échéance)</th><th style="width: 240px;">Commentaire / Lien</th><th style="width: 40px; text-align: center;">🗑️</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <button class="btn btn-secondary" style="width:auto;" onclick="addRow('table-external-requests', 8)">+ Ajouter une demande externe</button>
+
+                <hr style="border:0; border-top:1px solid var(--border); margin:30px 0;">
+                <h3>Risques, Imprévus & Adhérences</h3>
+                <table id="table-risks">
+                    <thead>
+                        <tr>
+                            <th>Date Découverte</th><th>Description</th><th>ID Actions relatives</th><th>Action de remédiation</th><th>Échéance</th><th style="width: 40px; text-align: center;">🗑️</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <button class="btn btn-secondary" style="width:auto;" onclick="addRow('table-risks', 6)">+ Ajouter un risque / événement</button>
+            </div>
+
+            <!-- ==========================================================================
+               ONGLET : VUE KANBAN
+               ========================================================================== -->
+            <div id="tab-kanban" class="tab-content">
+                <h3>Tableau Agile Kanban</h3>
+                <p style="font-size:13px; color:var(--text-secondary); margin-top:-5px;">Visualisation dynamique des tâches. Modifiez le statut à l'aide des boutons de transfert rapides.</p>
+                <div class="kanban-board">
+                    <div class="kanban-column" data-status="à démarrer"><div class="kanban-column-header">📋 À démarrer <span class="count">0</span></div><div class="cards-container"></div></div>
+                    <div class="kanban-column" data-status="en cours"><div class="kanban-column-header">⚡ En cours <span class="count">0</span></div><div class="cards-container"></div></div>
+                    <div class="kanban-column" data-status="bloquée/retardée"><div class="kanban-column-header">⚠️ Bloqué <span class="count">0</span></div><div class="cards-container"></div></div>
+                    <div class="kanban-column" data-status="terminée"><div class="kanban-column-header">✅ Terminé <span class="count">0</span></div><div class="cards-container"></div></div>
+                </div>
+            </div>
+
+            <!-- ==========================================================================
+               ONGLET : PLANNING GANTT
+               ========================================================================== -->
+            <div id="tab-planning" class="tab-content"></div>
+
+            <!-- ==========================================================================
+               ONGLET : NOTES & COMPTES RENDUS
+               ========================================================================== -->
+            <div id="tab-notes" class="tab-content">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h3 style="margin:0;">Prise de notes & Comptes rendus</h3>
+                    <button class="btn btn-secondary" style="width:auto; padding:6px 12px; font-size:12px;" onclick="exportNotes()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Exporter (.txt)
+                    </button>
+                </div>
+                <div class="notes-editor-wrapper">
+                    <div class="editor-toolbar">
+                        <button class="editor-btn" onclick="insertMarkdown('# ', '')" title="Titre 1">H1</button>
+                        <button class="editor-btn" onclick="insertMarkdown('## ', '')" title="Titre 2">H2</button>
+                        <button class="editor-btn" onclick="insertMarkdown('**', '**')" title="Gras">Gras</button>
+                        <button class="editor-btn" onclick="insertMarkdown('*', '*')" title="Italique">Italique</button>
+                        <button class="editor-btn" onclick="insertMarkdown('~~', '~~')" title="Barré">Barré</button>
+                        <button class="editor-btn" onclick="insertMarkdown('- ', '')" title="Liste à puces">• Liste</button>
+                        <button class="editor-btn" onclick="insertMarkdown('1. ', '')" title="Liste numérotée">1. Liste</button>
+                        <button class="editor-btn" onclick="toggleNotesPreview()" id="preview-btn" style="margin-left: auto; background: var(--primary); color: white;">👁️ Prévisualiser</button>
+                    </div>
+                    <textarea id="notes-editor-textarea" class="editor-content" style="width:100%; height:380px; resize:vertical; font-family:monospace;" placeholder="Rédigez vos notes ou comptes-rendus au format Markdown ici..."></textarea>
+                    <div id="notes-editor-preview" class="editor-content" style="display:none; min-height:380px; background:var(--input-bg);"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+       POPOVER MODALE : Manuel Utilisateur Intégré
+       ========================================================================== */ -->
+    <div id="manual-modal" class="modal-overlay" onclick="closeUserManual()">
+        <div class="modal-container" onclick="event.stopPropagation()">
+            <span class="modal-close" onclick="closeUserManual()">✕</span>
+            <div style="line-height: 1.6;">
+                <h1>📘 Manuel Utilisateur - Gestionnaire de Projets Local Pro</h1>
+                <p>Bienvenue dans votre outil de pilotage de projet local, sécurisé et boosté à l'IA. Cette application s'exécute entièrement dans votre navigateur tout en sauvegardant vos données directement dans votre écosystème local (OneDrive ou disque local). Pas de base de données complexe, pas de cloud tiers : vous êtes maître de vos données.</p>
+                
+                <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+                
+                <h2>👑 0. Gestion des Profils Utilisateurs</h2>
+                <p>L'application s'adapte à votre rôle grâce à son commutateur de profils situé dans la barre latérale :</p>
+                <ul>
+                    <li><strong>Chef de projet (PM)</strong> : C'est la vue opérationnelle par défaut. Permet d'éditer l'intégralité d'un projet sélectionné dans la barre latérale.</li>
+                    <li><strong>Direction / Stratégique</strong> : Propose une vue macro de type Dashboard avec des compteurs consolidés pertinents (volume de projets actifs, budget cumulé, charge globale en JH, alertes bloquantes) filtrables par priorité de projet (P1, P2, P3), ainsi qu'un tableau d'exploration enrichi affichant les alertes et tâches bloquées par dossier.</li>
+                </ul>
+
+                <h2>🚀 1. Mise en route</h2>
+                <p>Pour que l'application puisse lire et écrire vos fichiers projets directement sur votre ordinateur, elle utilise des technologies Web modernes (File System Access API).</p>
+                <h3>📋 Prérequis</h3>
+                <ul>
+                    <li>Utiliser un navigateur moderne basé sur Chromium (<strong>Google Chrome</strong> ou <strong>Microsoft Edge</strong>).</li>
+                    <li>Avoir un dossier dédié sur votre ordinateur ou votre <strong>OneDrive</strong> pour y stocker les fichiers de vos projets.</li>
+                </ul>
+                <h3>🏁 Premier démarrage</h3>
+                <ol>
+                    <li><strong>Ouvrir l'espace de stockage</strong> : Cliquez sur le bouton <strong>"Ouvrir OneDrive"</strong> dans la barre latérale gauche. Votre navigateur va vous afficher une invite de sécurité : <strong>autorisez l'accès en lecture et écriture</strong> au dossier choisi.</li>
+                    <li><strong>Créer votre premier projet</strong> : Dans le champ <em>"Nom du projet..."</em>, saisissez le titre de votre projet puis cliquez sur le bouton <strong>➕</strong>. Un fichier <code>.json</code> portant le nom de votre projet est instantanément créé dans votre dossier de travail.</li>
+                    <li><strong>Sélectionner un projet</strong> : Vos projets s'affichent automatiquement dans la barre latérale, classés par statut (<em>Cadrage, En cours, Terminés/Abandonnés</em>). Cliquez sur l'un d'eux pour charger son tableau de bord.</li>
+                </ol>
+                <blockquote style="background: var(--header-bg); border-left: 4px solid var(--primary); padding: 12px 15px; margin: 15px 0; border-radius: var(--radius-sm);">
+                    ⚠️ <strong>La Règle d'Or</strong> : L'application n'enregistre pas en temps réel pour préserver les performances. Pensez à cliquer sur le bouton vert <strong>"Enregistrer"</strong> en haut à droite avant de quitter ou de changer de projet !
+                </blockquote>
+
+                <h2>🏢 2. Gestion Administrative & Stratégique</h2>
+                <p>L'application sépare les informations d'identification globale des informations orientées pour le management.</p>
+                <h3>📋 Onglet : Description</h3>
+                <ul>
+                    <li><strong>Priorité Projet</strong> : Renseignez la typologie de priorité globale du projet (P1, P2 &gt;50JH, ou P3 &lt;50JH). Ce tag permet à la direction de filtrer l'ensemble du portefeuille d'un seul clic.</li>
+                    <li><strong>Codes et Alias</strong> : Renseignez le Code Projet, le code applicatif/produit (Format <em>Fxx - nom_appli</em>) et l'alias d'usage chez le client.</li>
+                    <li><strong>Historique CdP</strong> : En cliquant sur la case <strong>Chef de projet</strong>, un popover s'ouvre pour vous permettre d'ajouter le CdP actuel avec sa date de prise de poste.</li>
+                    <li><strong>Plannings Macro</strong> : Cliquez sur <strong>Planning Global</strong> pour renseigner graphiquement les dates initiales et révisées (Début/Fin).</li>
+                    <li><strong>Tableau des Participants</strong> : Listez vos ressources, leurs équipes, et leur disponibilité (en %).</li>
+                </ul>
+                <h3>🏢 Onglet : Contexte & Infos</h3>
+                <p>Cet onglet est spécifiquement conçu pour faciliter le reporting auprès du management :</p>
+                <ul>
+                    <li><strong>Client</strong> : Sélectionnez l'entité concernée dans le menu déroulant (<code>CA-PFM Fr</code>, <code>CA-PFM Corp</code>, <code>CA-LF</code>).</li>
+                    <li><strong>Champs textuels d'impact</strong> : Rédigez le contexte, le descriptif technique des flux, et surtout les impacts business pour le client.</li>
+                </ul>
+
+                <h2>🎬 3. Pilotage Opérationnel (Plan d'action & Risques)</h2>
+                <p>C'est le cœur réactif de votre application. L'onglet <strong>Plan d'action & Risques</strong> vous permet de structurer l'exécution de vos tâches.</p>
+                <h3>📑 Organisation par Streams (Chapitres)</h3>
+                <ul>
+                    <li>Vous pouvez modifier l'ordre des chapitres entiers à l'aide des flèches <strong>🔼 / 🔽</strong> situées à droite des barres de titre de chaque Stream.</li>
+                    <li>Les chapitres n'ayant aucune tâche "en cours" se replient automatiquement pour économiser l'espace visuel.</li>
+                </ul>
+                <h3>📥 Import / Export & Raccourcis</h3>
+                <ul>
+                    <li><strong>Import Excel Rapide</strong> : Vous avez déjà un tableau Excel ? Copiez simplement vos lignes (12 colonnes dans l'ordre du tableau) et collez-les directement dans la zone de texte pointillée. L'application parse le contenu instantanément.</li>
+                    <li><strong>Export CSV</strong> : Exportez votre plan d'action d'un clic pour l'envoyer par mail ou l'ouvrir dans Excel.</li>
+                    <li><strong>👥 Synchronisation d'équipe</strong> : Cliquez sur <em>"Ajouter équipes réalisatrices aux participants"</em> pour injecter automatiquement toutes les équipes saisies dans vos actions directement dans votre liste de participants.</li>
+                </ul>
+                <h3>⏳ Moteur de Rétro-planning Avancé</h3>
+                <p>Si vous avez correctement saisi des <strong>Prédécesseurs</strong> (ex: l'action <code>ACT-02</code> dépend de l'<code>ACT-01</code>), l'application peut calculer votre rétro-planning :</p>
+                <ol>
+                    <li>Saisissez une <strong>Date fin impérative client</strong> dans l'onglet <em>Description</em>.</li>
+                    <li>Cliquez sur le bouton rouge <strong>"Calculer le Rétro-planning"</strong>.</li>
+                    <li>L'application calcule par propagation inverse les dates <em>au plus tard</em> pour toutes les tâches au statut <strong>"à démarrer"</strong>.</li>
+                </ol>
+
+                <h2>🏄‍♂️ 4. Vues Agiles & Visuelles</h2>
+                <p>L'application transforme vos données tabulaires en représentations graphiques interactives.</p>
+                <h3>📋 Vue Kanban</h3>
+                <ul>
+                    <li>Vos actions y sont représentées sous forme de cartes agiles réparties en 4 colonnes (<em>À démarrer, En cours, Bloqué, Terminé</em>).</li>
+                    <li>Utilisez les boutons de transfert rapides <strong>◀ / ▶</strong> sur les cartes pour faire progresser une tâche d'une colonne à l'autre.</li>
+                </ul>
+                <h3>📅 Planning (Gantt)</h3>
+                <ul>
+                    <li><strong>Zoom adaptable</strong> : Basculez entre une vision par Jour, Semaine, ou Mois selon la durée du projet.</li>
+                    <li><strong>Chemin Critique</strong> : Les tâches qui conditionnent directement la date de fin du projet sont entourées d'un <strong>halo rouge lumineux</strong>.</li>
+                    <li><strong>Ligne du jour</strong> : Une ligne verticale pointillée rouge indique la date du jour pour visualiser instantanément votre retard ou votre avance.</li>
+                </ul>
+
+                <h2>📝 5. Notes & Comptes Rendus</h2>
+                <p>Plus besoin d'ouvrir un bloc-notes externe pendant vos réunions.</p>
+                <ul>
+                    <li><strong>Raccourcis de formatage</strong> : Utilisez les boutons de la barre d'outils (<code>H1</code>, <code>H2</code>, <code>Gras</code>, <code>Liste</code>) pour structurer votre texte.</li>
+                    <li><strong>Mode Prévisualisation</strong> : Basculez sur <strong>👁️ Prévisualiser</strong> pour transformer instantanément vos notes Markdown en un rendu HTML propre.</li>
+                    <li><strong>Export texte</strong> : Cliquez sur <em>"Exporter (.txt)"</em> pour récupérer un fichier texte brut de votre compte rendu.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+       LOGIQUE APPLICATIVE (JAVASCRIPT)
+       ========================================================================== -->
+    <script>
+        // --- États globaux de l'application ---
+        let dirHandle = null;            // Handle d'accès au répertoire local (FileSystem API)
+        let currentProjectData = null;   // Objet JSON contenant les données du projet actif
+        let currentFilename = null;      // Identifiant de fichier (ex: mon_projet.json)
+        let ganttViewMode = 'days';      // Niveau de zoom chronologique du Gantt
+        let isPreviewMode = false;       // État du commutateur d'affichage de l'éditeur Markdown
+        let currentProfile = 'pm';       // Profil utilisateur courant ('pm' | 'direction')
+        let globalPortfolioCache = [];   // Cache global contenant les données lues de tous les projets (.json)
+
+        // --- Fonctions d'animation de la Popover Manuel Utilisateur ---
+        function openUserManual() { document.getElementById('manual-modal').style.display = 'flex'; }
+        function closeUserManual() { document.getElementById('manual-modal').style.display = 'none'; }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function parseMarkdown(md) {
+            if (!md) return '';
+            let html = escapeHTML(md);
+            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>').replace(/^## (.*$)/gim, '<h2>$1</h2>').replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/~~(.*?)~~/g, '<del>$1</del>');
+            let lines = html.split('\n'); let inUl = false; let inOl = false;
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (line.startsWith('- ')) {
+                    if (!inUl) { lines[i] = '<ul><li>' + line.substring(2) + '</li>'; inUl = true; } else { lines[i] = '<li>' + line.substring(2) + '</li>'; }
+                } else if (/^\d+\.\s/.test(line)) {
+                    let text = line.replace(/^\d+\.\s/, '');
+                    if (!inOl) { lines[i] = '<ol><li>' + text + '</li>'; inOl = true; } else { lines[i] = '<li>' + text + '</li>'; }
+                } else {
+                    if (inUl) { lines[i-1] += '</ul>'; inUl = false; } if (inOl) { lines[i-1] += '</ol>'; inOl = false; }
+                    if (line !== '' && !line.startsWith('<h') && !line.startsWith('<ul') && !line.startsWith('<ol')) { lines[i] = '<p>' + line + '</p>'; }
+                }
+            }
+            if (inUl) lines[lines.length - 1] += '</ul>'; if (inOl) lines[lines.length - 1] += '</ol>';
+            return lines.join('\n');
+        }
+
+        function insertMarkdown(before, after) {
+            const textarea = document.getElementById('notes-editor-textarea');
+            if (isPreviewMode) toggleNotesPreview(); textarea.focus();
+            const start = textarea.selectionStart; const end = textarea.selectionEnd; const text = textarea.value;
+            const selectedText = text.substring(start, end); const replacement = before + selectedText + after;
+            textarea.value = text.substring(0, start) + replacement + text.substring(end);
+            textarea.selectionStart = start + before.length; textarea.selectionEnd = start + before.length + selectedText.length;
+        }
+
+        function toggleNotesPreview() {
+            const textarea = document.getElementById('notes-editor-textarea'); const preview = document.getElementById('notes-editor-preview'); const btn = document.getElementById('preview-btn');
+            if (!isPreviewMode) { preview.innerHTML = parseMarkdown(textarea.value); textarea.style.display = 'none'; preview.style.display = 'block'; btn.innerText = '📝 Éditer'; isPreviewMode = true; }
+            else { textarea.style.display = 'block'; preview.style.display = 'none'; btn.innerText = '👁️ Prévisualiser'; isPreviewMode = false; }
+        }
+
+        function importExcelActions() {
+            const textarea = document.getElementById('excel-paste-actions'); const text = textarea.value.trim(); if (!text) return;
+            const lines = text.split(/\r?\n/); const importedActions = [];
+            lines.forEach(line => {
+                const cols = line.split('\t'); if (cols.length < 5) return;
+                const chapitre = cols[0] ? cols[0].trim() : 'Général'; const idStr = cols[1] ? cols[1].trim() : generateNextActionID();
+                const equipe = cols[2] ? cols[2].trim() : ''; const priorite = cols[3] ? cols[3].trim() : 'P2'; const description = cols[4] ? cols[4].trim() : '';
+                const statut = cols[5] ? cols[5].trim().toLowerCase() : 'à démarrer'; const debut = cols[6] ? cols[6].trim() : ''; const echeance = cols[7] ? cols[7].trim() : '';
+                const revisee = cols[8] ? cols[8].trim() : ''; const predecesseur = cols[9] ? cols[9].trim() : ''; const commentaire = cols[10] ? cols[10].trim() : ''; const jh = cols[11] ? cols[11].trim() : '0';
+                const idPredObj = { id: idStr, pred: predecesseur }; const datesObj = { start: debut ? formatDateToISO(debut) : '', end: echeance ? formatDateToISO(echeance) : '', rev: revisee ? formatDateToISO(revisee) : '' };
+                const commentJson = commentaire ? JSON.stringify([{ date: new Date().toLocaleDateString('fr-FR'), text: commentaire }]) : '[]';
+                importedActions.push({ "Chapitre / Stream": chapitre, "ID / Préd.": JSON.stringify(idPredObj), "Équipe réalisatrice": equipe, "Priorité": priorite, "Description de l'action": description, "Statut": statut, "Planning (Début ➜ Fin)": JSON.stringify(datesObj), "Rétro-planning": "{\"start\":\"\",\"end\":\"\",\"rev\":\"\"}", "Commentaire": commentJson, "Poids (JH)": jh });
+            });
+            if (importedActions.length > 0) { const existingActions = collectTableData('table-actions'); const allActions = existingActions.concat(importedActions); renderTable('table-actions', allActions, 11); textarea.value = ''; alert(importedActions.length + " action(s) importée(s) avec succès !"); }
+        }
+
+        // --- Gestion Thème & Profils à l'IHM ---
+        if (localStorage.getItem('theme') === 'dark') { document.body.classList.add('dark-theme'); }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('theme') === 'dark') {
+                const btn = document.getElementById('theme-btn'); if(btn) btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg><span>☀️ Mode Clair</span>';
+            }
+            if (localStorage.getItem('sidebarCollapsed') === 'true') { document.getElementById('sidebar').classList.add('collapsed'); }
+            initGlobalPlanningPopover(); initPmHistoryPopover();
+            
+            const savedProfile = localStorage.getItem('userProfile') || 'pm';
+            if(savedProfile === 'management') savedProfile = 'pm'; 
+            document.getElementById('profile-select').value = savedProfile;
+            currentProfile = savedProfile;
+            
+            const savedTab = localStorage.getItem('activeTab') || 'description'; switchTab(savedTab);
+        });
+
+        function toggleSidebar() { const sidebar = document.getElementById('sidebar'); sidebar.classList.toggle('collapsed'); localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed') ? 'true' : 'false'); }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-theme'); const isDark = document.body.classList.contains('dark-theme'); localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            const btn = document.getElementById('theme-btn');
+            if(btn) { btn.innerHTML = isDark ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg><span>☀️ Mode Clair</span>' : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg><span>🌓 Mode Sombre</span>'; }
+            document.querySelectorAll('#table-actions select, #table-external-requests select').forEach(select => { if (select.parentElement.classList.contains('status-cell') || select.innerHTML.includes('en cours')) { updateStatusCellColor(select); } });
+        }
+
+        // --- SWITCH PROFIL : PM & DIRECTION ---
+        function handleProfileSwitch(profileValue) {
+            currentProfile = profileValue;
+            localStorage.setItem('userProfile', profileValue);
+            
+            document.getElementById('no-project-message').style.display = 'none';
+            document.getElementById('project-view').style.display = 'none';
+            document.getElementById('portfolio-view').style.display = 'none';
+            document.getElementById('portfolio-back-btn').style.display = 'none';
+
+            if (currentProfile === 'pm') {
+                if (currentProjectData) { document.getElementById('project-view').style.display = 'flex'; } 
+                else { document.getElementById('no-project-message').style.display = 'flex'; }
+            } else {
+                document.getElementById('portfolio-view').style.display = 'flex';
+                renderPortfolioTable();
+            }
+        }
+
+        function renderPortfolioTable() {
+            const tbody = document.querySelector('#table-portfolio tbody');
+            tbody.innerHTML = '';
+            
+            if (globalPortfolioCache.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; font-style:italic; color:var(--text-secondary);">Aucun projet détecté ou dossier local fermé. Cliquez sur "Ouvrir OneDrive".</td></tr>`;
+                return;
+            }
+
+            const priorityFilter = document.getElementById('portfolio-priority-filter').value;
+            let activeCount = 0, totalBudget = 0, totalJh = 0, blockedActionsCount = 0;
+
+            globalPortfolioCache.forEach(proj => {
+                const projPriority = proj.projectPriority || "P2"; 
+                if (priorityFilter && projPriority !== priorityFilter) return;
+
+                const st = (proj.status || 'Cadrage').toLowerCase();
+                if (st === 'en cours' || st === 'cadrage') activeCount++;
+                totalBudget += parseFloat(proj.budget) || 0;
+                totalJh += parseFloat(proj.jh) || 0;
+
+                let projBlockedCount = 0;
+                if (proj.actions && Array.isArray(proj.actions)) {
+                    proj.actions.forEach(a => { 
+                        if (a["Statut"] === "bloquée/retardée") {
+                            blockedActionsCount++; 
+                            projBlockedCount++;
+                        }
+                    });
+                }
+
+                let projAlertsCount = (proj.risks && Array.isArray(proj.risks)) ? proj.risks.length : 0;
+                let pmName = "Non assigné";
+                try {
+                    let pmData = typeof proj.pm === 'string' && proj.pm.trim().startsWith('[') ? JSON.parse(proj.pm) : [];
+                    if (pmData.length > 0) pmName = pmData[pmData.length - 1].name;
+                } catch(e) {}
+
+                let statusClass = '';
+                if (st === 'en cours') statusClass = 'status-en-cours';
+                else if (st === 'terminé') statusClass = 'status-terminee';
+                else if (st === 'abandonné') statusClass = 'status-abandonnee';
+                else statusClass = 'status-bloquee';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="text-align:center;"><button class="btn" style="padding:4px 8px; font-size:12px; width:auto;" onclick="openProjectFromPortfolio('${proj._filename}')">👁️ Ouvrir</button></td>
+                    <td><code>${escapeHTML(proj.code || 'N/A')}</code></td>
+                    <td style="font-weight:600; color:var(--primary);">${escapeHTML(proj.title || 'Sans nom')} <span style="font-size:11px; color:var(--text-secondary); font-weight:normal;">[${escapeHTML(projPriority)}]</span></td>
+                    <td>${escapeHTML(proj.clientType || 'N/A')}</td>
+                    <td>👤 ${escapeHTML(pmName)}</td>
+                    <td class="${statusClass}">${escapeHTML(proj.status || 'Cadrage')}</td>
+                    <td style="text-align:center; font-weight:bold; ${projAlertsCount > 0 ? 'color:#dc2626; background:rgba(220,38,38,0.06);' : ''}">${projAlertsCount}</td>
+                    <td style="text-align:center; font-weight:bold; ${projBlockedCount > 0 ? 'color:#d97706; background:rgba(217,119,6,0.06);' : ''}">${projBlockedCount}</td>
+                    <td>🎯 ${escapeHTML(proj.dateDeadline ? new Date(proj.dateDeadline).toLocaleDateString('fr-FR') : 'Non définie')}</td>
+                    <td><b>${escapeHTML(proj.budget || 0)} K€</b></td>
+                    <td><b>${escapeHTML(proj.jh || 0)} JH</b></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('kpi-active-projects').innerText = activeCount;
+            document.getElementById('kpi-total-budget').innerText = totalBudget + " K€";
+            document.getElementById('kpi-total-jh').innerText = totalJh + " JH";
+            document.getElementById('kpi-blocked-actions').innerText = blockedActionsCount;
+
+            if (tbody.children.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; font-style:italic; color:var(--text-secondary);">Aucun projet ne correspond à cette priorité de filtrage.</td></tr>`;
+            }
+        }
+
+        function openProjectFromPortfolio(filename) {
+            loadProject(filename).then(() => {
+                document.getElementById('portfolio-view').style.display = 'none';
+                document.getElementById('project-view').style.display = 'flex';
+                
+                const backBtn = document.getElementById('portfolio-back-btn');
+                backBtn.style.display = 'inline-flex';
+                backBtn.innerText = '⬅️ Retour Dashboard Direction';
+            });
+        }
+
+        function returnToPortfolio() {
+            document.getElementById('project-view').style.display = 'none';
+            handleProfileSwitch(currentProfile);
+        }
+
+        // --- Logique Parsing & Dates Séquentielles ---
+        function safeParseDate(dateStr) {
+            if (!dateStr) return null; dateStr = dateStr.trim(); if (!dateStr) return null;
+            let d = new Date(dateStr); if (!isNaN(d.getTime())) return d;
+            let separator = dateStr.includes('/') ? '/' : (dateStr.includes('-') ? '-' : null);
+            if (separator) {
+                let parts = dateStr.split(separator);
+                if (parts.length === 3) {
+                    let day = parseInt(parts[0], 10); let month = parseInt(parts[1], 10) - 1; let year = parseInt(parts[2], 10);
+                    if (year < 100) year += 2000; let testDate = new Date(year, month, day); if (!isNaN(testDate.getTime())) return testDate;
+                }
+            }
+            return null;
+        }
+
+        function formatDateToISO(dateStr) { const parsed = safeParseDate(dateStr); if (!parsed) return ""; return parsed.toISOString().split('T')[0]; }
+
+        function updateProjectLinks() {
+            const linkConfigs = [ { inputId: 'p-metis', btnId: 'btn-metis' }, { inputId: 'p-cadrage', btnId: 'btn-cadrage' }, { inputId: 'p-estimation', btnId: 'btn-estimation' } ];
+            linkConfigs.forEach(config => {
+                const urlInput = document.getElementById(config.inputId).value.trim(); const linkEl = document.getElementById(config.btnId);
+                if (urlInput) { linkEl.href = (!urlInput.startsWith('http://') && !urlInput.startsWith('https://')) ? 'https://' + urlInput : urlInput; linkEl.style.opacity = "1"; linkEl.style.pointerEvents = "auto"; } 
+                else { linkEl.href = "#"; linkEl.style.opacity = "0.4"; linkEl.style.pointerEvents = "none"; }
+            });
+        }
+
+        function generateNextActionID() {
+            const table = document.getElementById('table-actions'); if(!table) return "ACT-01";
+            const rows = table.getElementsByTagName('tbody')[0].rows; let maxId = 0;
+            for(let i=0; i<rows.length; i++) {
+                if(rows[i].dataset.streamHeader) continue; const td = rows[i].cells[1];
+                if(td && td.dataset.idPredJson) { try { const idStr = JSON.parse(td.dataset.idPredJson).id; const num = parseInt(idStr.replace(/[^0-9]/g, ''), 10); if(!isNaN(num) && num > maxId) maxId = num; } catch(e){} }
+            }
+            maxId++; return `ACT-${maxId.toString().padStart(2, '0')}`;
+        }
+
+        function filterProjectList() {
+            const query = document.getElementById('project-search').value.toLowerCase();
+            document.querySelectorAll('#project-list li').forEach(item => { item.style.display = item.innerText.toLowerCase().includes(query) ? 'flex' : 'none'; });
+        }
+
+        function applyActionFilters() {
+            const statusFilter = document.getElementById('filter-status').value; const teamFilter = document.getElementById('filter-team').value.toLowerCase();
+            const tbody = document.querySelector('#table-actions tbody'); if (!tbody) return; const rows = Array.from(tbody.rows);
+            rows.forEach(row => {
+                if(row.dataset.streamHeader) return;
+                const statusSelect = row.cells[5]?.querySelector('select'); const selectVal = statusSelect ? statusSelect.value : "";
+                const teamVal = row.cells[2]?.innerText.toLowerCase() || "";
+                row.style.display = (!statusFilter || selectVal === statusFilter) && (!teamFilter || teamVal.includes(teamFilter)) ? '' : 'none';
+            });
+            let streamHasVisibleContent = false; let lastHeaderRow = null;
+            rows.forEach(row => { if (row.dataset.streamHeader) { if (lastHeaderRow) { lastHeaderRow.style.display = streamHasVisibleContent ? '' : 'none'; } lastHeaderRow = row; streamHasVisibleContent = false; } else { if (row.style.display !== 'none') { streamHasVisibleContent = true; } } });
+            if (lastHeaderRow) { lastHeaderRow.style.display = streamHasVisibleContent ? '' : 'none'; }
+        }
+
+        function resetActionFilters() {
+            document.getElementById('filter-status').value = ""; document.getElementById('filter-team').value = "";
+            const tbody = document.querySelector('#table-actions tbody'); if (!tbody) return; let currentExpanded = true;
+            Array.from(tbody.rows).forEach(row => { if (row.dataset.streamHeader) { row.style.display = ''; currentExpanded = (row.dataset.expanded === "true"); } else { row.style.display = currentExpanded ? '' : 'none'; } });
+        }
+
+        function exportToCSV(tableId, filename) {
+            const data = collectTableData(tableId); if(data.length === 0) return;
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; const headers = Object.keys(data[0]); csvContent += headers.join(";") + "\r\n";
+            data.forEach(row => {
+                let rowData = headers.map(header => {
+                    let val = row[header] || "";
+                    if(typeof val === 'string' && val.startsWith('{')) { try { let obj = JSON.parse(val); val = obj.id ? `${obj.id} (Préd: ${obj.pred || 'Aucun'})` : Object.values(obj).join(' '); } catch(e){} }
+                    let valStr = val.toString(); if (/^[=\+\-\@\t\r]/.test(valStr)) { valStr = "'" + valStr; } return `"${valStr.replace(/"/g, '""')}"`;
+                });
+                csvContent += rowData.join(";") + "\r\n";
+            });
+            const link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", `${filename}_2026.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        function exportNotes() {
+            const blob = new Blob([document.getElementById('notes-editor-textarea').value], { type: "text/plain;charset=utf-8" });
+            const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `compte_rendu_notes.txt`; link.click();
+        }
+
+        function buildKanbanBoard() {
+            const actions = collectTableData('table-actions'); document.querySelectorAll('.kanban-column .cards-container').forEach(c => c.innerHTML = '');
+            const counts = { 'à démarrer': 0, 'en cours': 0, 'bloquée/retardée': 0, 'terminée': 0 };
+            actions.forEach((action, index) => {
+                const status = action["Statut"] || "à démarrer"; const container = document.querySelector(`.kanban-column[data-status="${status}"] .cards-container`); if(!container) return;
+                counts[status]++; const card = document.createElement('div'); card.className = 'kanban-card';
+                let idObj = { id: `ACT-${index}`, pred: "" }; try { if(action["ID / Préd."]) idObj = JSON.parse(action["ID / Préd."]); } catch(e){}
+                card.innerHTML = `<div class="kanban-card-title">${escapeHTML(action["Description de l'action"] || 'Action sans nom')}</div><div class="kanban-card-stream">${escapeHTML(action["Chapitre / Stream"] || 'Général')}</div><div class="kanban-card-meta"><span>🆔 <b>${escapeHTML(idObj.id || 'N/A')}</b></span><span>👥 ${escapeHTML(action["Équipe réalisatrice"] || 'Non assigné')}</span></div><div class="kanban-card-actions"><button class="btn-icon" style="width:24px; height:24px; font-size:10px;" onclick="changeCardStatus(${index}, -1)">◀</button><button class="btn-icon" style="width:24px; height:24px; font-size:10px;" onclick="changeCardStatus(${index}, 1)">▶</button></div>`;
+                container.appendChild(card);
+            });
+            Object.keys(counts).forEach(st => { const el = document.querySelector(`.kanban-column[data-status="${st}"] .count`); if(el) el.innerText = counts[st]; });
+        }
+
+        function changeCardStatus(actionIndex, direction) {
+            const states = ["à démarrer", "en cours", "bloquée/retardée", "terminée"];
+            let dataRows = Array.from(document.getElementById('table-actions').getElementsByTagName('tbody')[0].rows).filter(r => !r.dataset.streamHeader);
+            const targetRow = dataRows[actionIndex]; if(!targetRow) return; const select = targetRow.cells[5]?.querySelector('select');
+            if(select) { let newIdx = states.indexOf(select.value) + direction; if(newIdx >= 0 && newIdx < states.length) { select.value = states[newIdx]; updateStatusCellColor(select); updateTableAnalysis(); buildKanbanBoard(); } }
+        }
+
+        function updateTableAnalysis() { updateJHTotals(); updateParallelTasks(); updateCalculatedProjectDates(); }
+
+        function updateCalculatedProjectDates() {
+            const actions = collectTableData('table-actions'); let minStart = null; let maxEnd = null;
+            actions.forEach(row => {
+                if (row["Planning (Début ➜ Fin)"]) { try { const dObj = JSON.parse(row["Planning (Début ➜ Fin)"]); if (dObj.start) { const s = safeParseDate(dObj.start); if (s && (!minStart || s < minStart)) minStart = s; } const finalEndStr = dObj.rev || dObj.end; if (finalEndStr) { const e = safeParseDate(finalEndStr); if (e && (!maxEnd || e > maxEnd)) maxEnd = e; } } catch(e){} }
+            });
+            const calcEl = document.getElementById('p-calculated-dates');
+            if (calcEl) {
+                if (minStart && maxEnd) { const format = (d) => d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'}); calcEl.innerHTML = `⏱️ ${format(minStart)} ➜ ${format(maxEnd)}`; } 
+                else { calcEl.innerHTML = `<span style="color:var(--text-secondary); font-style:italic;">⏱️ Aucune action planifiée</span>`; }
+            }
+        }
+
+        function renderGlobalPlanningCompact(d) {
+            const box = document.getElementById('p-global-planning-box'); if (!box) return;
+            const format = (dt) => { const parsed = safeParseDate(dt); return parsed ? parsed.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'2-digit'}) : '??'; };
+            if (!d.startInit && !d.endInit) { box.innerHTML = `<span style="color:var(--text-secondary); font-style:italic;">Définir le planning global</span>`; return; }
+            box.innerHTML = `📅 ${d.startRev ? `<s>${format(d.startInit)}</s> <span style="color:#d83b01; font-weight:bold;">${format(d.startRev)}</span>` : format(d.startInit)} ➜ ${d.endRev ? `<s>${format(d.endInit)}</s> <span style="color:#d83b01; font-weight:bold;">${format(d.endRev)}</span>` : format(d.endInit)}`;
+        }
+
+        function initGlobalPlanningPopover() {
+            const box = document.getElementById('p-global-planning-box'); if (!box) return;
+            box.onclick = (e) => {
+                if (box.querySelector('.global-dates-popover')) return; e.stopPropagation(); document.querySelectorAll('.dates-popover, .idpred-popover, .global-dates-popover, .pm-history-popover').forEach(p => p.remove());
+                let d = { startInit: "", startRev: "", endInit: "", endRev: "" }; try { d = JSON.parse(box.dataset.globalDatesJson || '{}'); } catch(ex){}
+                const popover = document.createElement('div'); popover.className = 'global-dates-popover'; popover.style = "position:absolute; top:100%; left:0; z-index:100; background:var(--card-bg); border:1px solid var(--border); padding:12px; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); display:flex; flex-direction:column; gap:6px; min-width:240px;";
+                popover.innerHTML = `<input type="date" value="${d.startInit || ''}" id="g-start-init"><input type="date" value="${d.startRev || ''}" id="g-start-rev"><input type="date" value="${d.endInit || ''}" id="g-end-init"><input type="date" value="${d.endRev || ''}" id="g-end-rev"><div style="display:flex; gap:6px; margin-top:6px;"><button class="btn" id="g-save" style="padding:4px;">OK</button></div>`;
+                popover.querySelector('#g-save').onclick = (ev) => {
+                    ev.stopPropagation(); d.startInit = popover.querySelector('#g-start-init').value; d.startRev = popover.querySelector('#g-start-rev').value; d.endInit = popover.querySelector('#g-end-init').value; d.endRev = popover.querySelector('#g-end-rev').value;
+                    box.dataset.globalDatesJson = JSON.stringify(d); renderGlobalPlanningCompact(d); popover.remove();
+                    document.getElementById('p-start-init').value = d.startInit; document.getElementById('p-start-rev').value = d.startRev; document.getElementById('p-end-init').value = d.endInit; document.getElementById('p-end-rev').value = d.endRev; updateTableAnalysis();
+                };
+                box.appendChild(popover);
+            };
+        }
+
+        function renderSubHistoryCompact(history) {
+            const box = document.getElementById('p-pm-box'); if (!box) return;
+            if (!history || history.length === 0) { box.innerHTML = `<span style="color:var(--text-secondary); font-style:italic;">Assigner un CdP</span>`; return; }
+            const latest = history[history.length - 1]; box.innerHTML = `👤 <b>${escapeHTML(latest.name)}</b> <span style="font-size:12px; color:var(--text-secondary); margin-left:6px;">(${escapeHTML(latest.date)})</span>`;
+        }
+
+        function initPmHistoryPopover() {
+            const box = document.getElementById('p-pm-box'); if (!box) return;
+            box.onclick = (e) => {
+                if (box.querySelector('.pm-history-popover')) return; e.stopPropagation(); document.querySelectorAll('.dates-popover, .idpred-popover, .global-dates-popover, .pm-history-popover').forEach(p => p.remove());
+                let history = []; try { history = JSON.parse(box.dataset.pmJson || '[]'); } catch(ex){}
+                const popover = document.createElement('div'); popover.className = 'pm-history-popover'; popover.style = "position:absolute; top:100%; left:0; z-index:100; background:var(--card-bg); border:1px solid var(--border); padding:12px; border-radius:6px; min-width:250px; display:flex; flex-direction:column; gap:6px;";
+                popover.innerHTML = `<input type="text" id="new-pm" placeholder="Nom du CdP..."><input type="date" id="new-pm-date"><button class="btn" id="add-pm-btn" style="padding:4px;">Ajouter</button>`;
+                popover.querySelector('#new-pm-date').value = new Date().toISOString().split('T')[0];
+                popover.querySelector('#add-pm-btn').onclick = (ev) => {
+                    ev.stopPropagation(); const name = popover.querySelector('#new-pm').value.trim(); const date = popover.querySelector('#new-pm-date').value;
+                    if(name && date) { history.push({date: safeParseDate(date).toLocaleDateString('fr-FR'), name: name}); box.dataset.pmJson = JSON.stringify(history); renderSubHistoryCompact(history); popover.remove(); }
+                };
+                box.appendChild(popover);
+            };
+        }
+
+        function updateJHTotals() {
+            const table = document.getElementById('table-actions'); if (!table) return;
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+            const jhIdx = headers.indexOf("Poids (JH)"); const tbody = table.querySelector('tbody'); let sumActions = 0;
+            if (tbody && jhIdx !== -1) { Array.from(tbody.rows).forEach(row => { if (row.cells.length > jhIdx && !row.dataset.streamHeader) { sumActions += parseFloat(row.cells[jhIdx].innerText.trim()) || 0; } }); }
+            const targetGlobal = parseFloat(document.getElementById('p-jh').value) || 0; const totalCell = document.getElementById('total-jh-cell');
+            if (totalCell) { totalCell.innerText = `${sumActions} / ${targetGlobal} JH`; if (sumActions > targetGlobal && targetGlobal > 0) totalCell.style.color = '#dc2626'; else if (sumActions === targetGlobal && targetGlobal > 0) totalCell.style.color = '#107c41'; else totalCell.style.color = 'currentColor'; }
+            const headerRetro = document.querySelector('th.retro-col'); let colspan = (headerRetro && headerRetro.style.display !== 'none') ? 9 : 8;
+            const labelCell = table.querySelector('tfoot tr td'); if (labelCell) labelCell.colSpan = colspan;
+        }
+
+        function updateParallelTasks() {
+            const table = document.getElementById('table-actions'); if (!table) return;
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+            const idPredIdx = headers.indexOf("ID / Préd."); const planIdx = headers.indexOf("Planning (Début ➜ Fin)"); const jhIdx = headers.indexOf("Poids (JH)");
+            const tbody = table.querySelector('tbody'); if (!tbody) return;
+            const pStart = safeParseDate(document.getElementById('p-start-rev').value || document.getElementById('p-start-init').value);
+            const pEnd = safeParseDate(document.getElementById('p-end-rev').value || document.getElementById('p-end-init').value);
+            let tasks = [];
+            Array.from(tbody.rows).forEach((row, idx) => {
+                if (row.dataset.streamHeader) return; const idCell = row.cells[idPredIdx]; if (!idCell) return;
+                idCell.classList.remove('parallel-id'); idCell.removeAttribute('title');
+                let idStr = idCell.dataset.idPredJson ? JSON.parse(idCell.dataset.idPredJson).id : idCell.innerText.trim();
+                let tStart = null, tEnd = null;
+                if (planIdx !== -1 && row.cells[planIdx] && row.cells[planIdx].dataset.datesJson) { try { const dObj = JSON.parse(row.cells[planIdx].dataset.datesJson); if (dObj.start) tStart = safeParseDate(dObj.start); if (dObj.rev || dObj.end) tEnd = safeParseDate(dObj.rev || dObj.end); } catch(e){} }
+                const jh = row.cells[jhIdx] ? (parseFloat(row.cells[jhIdx].innerText.trim()) || 0) : 0;
+                if (!tStart && tEnd && jh) tStart = new Date(tEnd.getTime() - (jh * 24 * 60 * 60 * 1000)); if (!tEnd && tStart && jh) tEnd = new Date(tStart.getTime() + (jh * 24 * 60 * 60 * 1000));
+                if (!tStart && pStart) tStart = pStart; if (!tEnd && pEnd) tEnd = pEnd;
+                if (tStart && tEnd && !isNaN(tStart.getTime()) && !isNaN(tEnd.getTime()) && tStart < tEnd) tasks.push({ rowIndex: idx, id: idStr || `Ligne ${idx+1}`, start: tStart, end: tEnd });
+            });
+            let parallelIndices = new Set();
+            for (let i = 0; i < tasks.length; i++) { for (let j = i + 1; j < tasks.length; j++) { if (tasks[i].start < tasks[j].end && tasks[j].start < tasks[i].end) { parallelIndices.add(tasks[i].rowIndex); parallelIndices.add(tasks[j].rowIndex); } } }
+            parallelIndices.forEach(idx => { const idCell = tbody.rows[idx].cells[idPredIdx]; if (idCell) { idCell.classList.add('parallel-id'); idCell.title = "Cette action s'exécute en parallèle avec au moins une autre tâche."; } });
+        }
+
+        function toggleRetroColumn() { const cols = document.querySelectorAll('.retro-col'); if (cols.length === 0) return; const nd = (cols[0].style.display === 'none') ? '' : 'none'; cols.forEach(c => c.style.display = nd); }
+        function toggleJhColumn() { const cols = document.querySelectorAll('.jh-col'); if (cols.length === 0) return; const nd = (cols[0].style.display === 'none') ? '' : 'none'; cols.forEach(c => c.style.display = nd); updateJHTotals(); }
+
+        async function runRetroPlanning() {
+            const deadline = safeParseDate(document.getElementById('p-deadline').value); if (!deadline) { alert("Veuillez d'abord saisir une 'Date fin impérative client' valide dans l'onglet Description."); return; }
+            const table = document.getElementById('table-actions'); const rows = Array.from(table.getElementsByTagName('tbody')[0].rows).filter(r => !r.dataset.streamHeader);
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+            const retroIdx = headers.indexOf("Rétro-planning"); const jhIdx = headers.indexOf("Poids (JH)");
+            let tasks = [];
+            rows.forEach((row, index) => {
+                const idCell = row.cells[1]; if (!idCell) return; let idStr = "", predStr = "";
+                if (idCell.dataset.idPredJson) { try { const parsed = JSON.parse(idCell.dataset.idPredJson); idStr = parsed.id ? parsed.id.trim() : ""; predStr = parsed.pred ? parsed.pred.trim() : ""; } catch(e){} }
+                let jh = (jhIdx !== -1 && row.cells[jhIdx]) ? parseFloat(row.cells[jhIdx].innerText.trim()) || 0 : 0;
+                const statusSelect = row.cells[5]?.querySelector('select'); const status = statusSelect ? statusSelect.value : 'à démarrer';
+                if (idStr) tasks.push({ id: idStr, pred: predStr, jh: jh, status: status, rowElement: row, lateStart: null, lateEnd: null });
+            });
+            if (tasks.length === 0) { alert("Aucune action exploitable trouvée."); return; }
+            tasks.forEach(t => { t.successors = tasks.filter(sub => sub.pred === t.id); });
+            tasks.forEach(t => { if (t.status === 'à démarrer' && t.successors.filter(s => s.status === 'à démarrer').length === 0) { t.lateEnd = new Date(deadline.getTime()); t.lateStart = new Date(t.lateEnd.getTime() - (t.jh * 24 * 60 * 60 * 1000)); } });
+            let changed = true; let iterations = 0;
+            while (changed && iterations < tasks.length * 2) {
+                changed = false; iterations++;
+                tasks.forEach(t => {
+                    if (t.status === 'à démarrer' && t.successors.filter(s => s.status === 'à démarrer').length > 0) {
+                        let minSuccessorStart = null; t.successors.filter(s => s.status === 'à démarrer').forEach(s => { if (s.lateStart && (!minSuccessorStart || s.lateStart < minSuccessorStart)) minSuccessorStart = s.lateStart; });
+                        if (minSuccessorStart) { const te = new Date(minSuccessorStart.getTime()); const ts = new Date(te.getTime() - (t.jh * 24 * 60 * 60 * 1000)); if (!t.lateEnd || t.lateEnd.getTime() !== te.getTime()) { t.lateEnd = te; t.lateStart = ts; changed = true; } }
+                    }
+                });
+            }
+            let updatedCount = 0;
+            tasks.forEach(t => {
+                if (t.status === 'à démarrer' && t.lateStart && t.lateEnd) {
+                    const cell = t.rowElement.cells[retroIdx]; if (cell) { cell.dataset.datesJson = JSON.stringify({ start: t.lateStart.toISOString().split('T')[0], end: t.lateEnd.toISOString().split('T')[0], rev: "" }); cell.innerHTML = `📅 ${t.lateStart.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'})} ➜ ${t.lateEnd.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'})}`; updatedCount++; }
+                }
+            });
+            if (updatedCount > 0) { if (document.querySelector('th.retro-col').style.display === 'none') toggleRetroColumn(); updateTableAnalysis(); alert(`🎯 Rétro-planning calculé pour ${updatedCount} action(s) !`); } 
+            else { alert("Aucune action calculée. Vérifiez vos dépendances."); }
+        }
+
+        // --- File System Access Data Processing Layers ---
+        async function initFolder() {
+            try { dirHandle = await window.showDirectoryPicker(); document.getElementById('new-proj-btn').disabled = false; await refreshProjectList(); } catch (err) { alert("Erreur d'accès au dossier : " + err.message); }
+        }
+
+        async function refreshProjectList() {
+            const listEl = document.getElementById('project-list'); listEl.innerHTML = '';
+            let groups = { cadrage: [], enCours: [], archive: [] }; let hasFiles = false;
+            globalPortfolioCache = [];
+
+            for await (const entry of dirHandle.values()) {
+                if (entry.kind === 'file' && entry.name.endsWith('.json')) {
+                    hasFiles = true;
+                    try {
+                        const fileHandle = await dirHandle.getFileHandle(entry.name); const file = await fileHandle.getFile(); const text = await file.text(); const data = JSON.parse(text);
+                        data._filename = entry.name;
+                        globalPortfolioCache.push(data);
+
+                        const status = (data.status || "Cadrage").toLowerCase(); const projObj = { filename: entry.name, title: data.title || entry.name.replace('.json', '') };
+                        if (status === "cadrage") groups.cadrage.push(projObj); else if (status === "en cours") groups.enCours.push(projObj); else groups.archive.push(projObj);
+                    } catch (e) { groups.cadrage.push({ filename: entry.name, title: entry.name.replace('.json', '') }); }
+                }
+            }
+            if (!hasFiles) { listEl.innerHTML = '<div style="color:var(--text-secondary); font-style:italic; font-size:14px;">Aucun projet trouvé.</div>'; return; }
+            function createProjLi(proj, typeClass) { const li = document.createElement('li'); li.innerText = proj.title; li.className = typeClass; if (proj.filename === currentFilename) li.classList.add('active'); li.onclick = () => { if(currentProfile !== 'pm') document.getElementById('profile-select').value = 'pm'; handleProfileSwitch('pm'); loadProject(proj.filename); }; return li; }
+            
+            if (groups.cadrage.length > 0) { const t = document.createElement('div'); t.className = 'project-section-title'; t.innerHTML = '🔹 Cadrage'; listEl.appendChild(t); const ul = document.createElement('ul'); ul.className = 'proj-list-group'; groups.cadrage.forEach(p => ul.appendChild(createProjLi(p, 'proj-cadrage'))); listEl.appendChild(ul); }
+            if (groups.enCours.length > 0) { const t = document.createElement('div'); t.className = 'project-section-title'; t.innerHTML = '🟢 En cours'; listEl.appendChild(t); const ul = document.createElement('ul'); ul.className = 'proj-list-group'; groups.enCours.forEach(p => ul.appendChild(createProjLi(p, 'proj-encours'))); listEl.appendChild(ul); }
+            if (groups.archive.length > 0) { const details = document.createElement('details'); details.className = 'archive-details'; if (groups.archive.some(p => p.filename === currentFilename)) details.open = true; const sm = document.createElement('summary'); sm.className = 'archive-summary'; sm.innerHTML = '📁 Terminés / Abandonnés'; details.appendChild(sm); const ul = document.createElement('ul'); ul.className = 'proj-list-group'; ul.style.marginTop = '6px'; groups.archive.forEach(p => ul.appendChild(createProjLi(p, 'proj-archive'))); details.appendChild(ul); listEl.appendChild(details); }
+            
+            if (currentProfile !== 'pm') renderPortfolioTable();
+        }
+
+        async function createNewProject() {
+            const nameInput = document.getElementById('new-proj-name'); const name = nameInput.value.trim(); if (!name) return;
+            try { const filename = `${name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`; const emptyProject = { title: name, status: "Cadrage", projectPriority: "P2", code: "", appCode: "", alias: "", pm: "[]", clientPm: "", dateEstimation: "", dateValidation: "", dateDeadline: "", startInit: "", startRev: "", endInit: "", endRev: "", budget: 0, jh: 0, metisUrl: "", cadrageUrl: "", estimationUrl: "", notes: `# 📋 Suivi : ${name}\n\n`, actions: [], risks: [], externalRequests: [], participants: [], clientType: "", contexte: "", descriptif: "", impacts: "" }; const fileHandle = await dirHandle.getFileHandle(filename, { create: true }); const writable = await fileHandle.createWritable(); await writable.write(JSON.stringify(emptyProject, null, 2)); await writable.close(); nameInput.value = ""; await refreshProjectList(); handleProfileSwitch('pm'); await loadProject(filename); } catch (err) { alert(err.message); }
+        }
+
+        function getParticipantOptions() {
+            let participants = []; try { participants = collectTableData('table-participants'); } catch(e) {}
+            if ((!participants || participants.length === 0) && currentProjectData && currentProjectData.participants) participants = currentProjectData.participants;
+            let options = [];
+            if (participants && participants.length > 0) {
+                participants.forEach(p => {
+                    let cluster = p["Cluster / Socle / client"] || "Général"; let equipe = p["Équipe"] || ""; let persStr = p["Personne (Historique)"] || "[]"; let names = [];
+                    try { if (typeof persStr === 'string' && persStr.startsWith('[')) { let arr = JSON.parse(persStr); if (arr.length > 0) names.push(arr[arr.length - 1].name); } else if (typeof persStr === 'string' && persStr) { names.push(persStr); } } catch(e) { names.push(persStr); }
+                    let label = cluster + "/" + equipe + (names.length > 0 ? "/" + names[0] : ""); if (label && !options.includes(label)) options.push(label);
+                });
+            }
+            return options;
+        }
+
+        async function loadProject(filename) {
+            currentFilename = filename; const fileHandle = await dirHandle.getFileHandle(filename); const file = await fileHandle.getFile(); const text = await file.text(); currentProjectData = JSON.parse(text);
+            document.getElementById('no-project-message').style.display = 'none'; document.getElementById('project-view').style.display = 'flex';
+            document.getElementById('current-project-title').innerText = currentProjectData.title || filename; document.getElementById('current-project-filename').innerText = `(${filename})`;
+            document.getElementById('p-title').value = currentProjectData.title || ""; 
+            document.getElementById('p-status').value = currentProjectData.status || "Cadrage"; 
+            document.getElementById('p-project-priority').value = currentProjectData.projectPriority || "P2";
+            document.getElementById('p-code').value = currentProjectData.code || ""; document.getElementById('p-app-code').value = currentProjectData.appCode || ""; document.getElementById('p-alias').value = currentProjectData.alias || ""; document.getElementById('p-client-pm').value = currentProjectData.clientPm || ""; document.getElementById('p-date-estimation').value = currentProjectData.dateEstimation || ""; document.getElementById('p-date-validation').value = currentProjectData.dateValidation || ""; document.getElementById('p-deadline').value = currentProjectData.dateDeadline || ""; document.getElementById('p-budget').value = currentProjectData.budget || 0; document.getElementById('p-jh').value = currentProjectData.jh || 0; document.getElementById('p-metis').value = currentProjectData.metisUrl || ""; document.getElementById('p-cadrage').value = currentProjectData.cadrageUrl || ""; document.getElementById('p-estimation').value = currentProjectData.estimationUrl || ""; updateProjectLinks();
+            document.getElementById('p-client-type').value = currentProjectData.clientType || ""; document.getElementById('p-contexte').value = currentProjectData.contexte || ""; document.getElementById('p-descriptif').value = currentProjectData.descriptif || ""; document.getElementById('p-impacts').value = currentProjectData.impacts || "";
+            document.getElementById('notes-editor-textarea').value = currentProjectData.notes || ""; document.getElementById('notes-editor-preview').style.display = 'none'; document.getElementById('notes-editor-textarea').style.display = 'block'; document.getElementById('preview-btn').innerText = '👁️ Prévisualiser'; isPreviewMode = false;
+            let pmData = []; if (currentProjectData.pm) { try { pmData = currentProjectData.pm.trim().startsWith('[') ? JSON.parse(currentProjectData.pm) : [{ date: "Initiale", name: currentProjectData.pm }]; } catch(e) {} }
+            document.getElementById('p-pm-box').dataset.pmJson = JSON.stringify(pmData); renderSubHistoryCompact(pmData);
+            document.getElementById('p-start-init').value = currentProjectData.startInit || ""; document.getElementById('p-start-rev').value = currentProjectData.startRev || ""; document.getElementById('p-end-init').value = currentProjectData.endInit || ""; document.getElementById('p-end-rev').value = currentProjectData.endRev || "";
+            let globalDates = { startInit: currentProjectData.startInit || "", startRev: currentProjectData.startRev || "", endInit: currentProjectData.endInit || "", endRev: currentProjectData.endRev || "" }; box = document.getElementById('p-global-planning-box'); if(box) box.dataset.globalDatesJson = JSON.stringify(globalDates); renderGlobalPlanningCompact(globalDates);
+            renderTable('table-participants', currentProjectData.participants || [], 5); renderTable('table-actions', currentProjectData.actions || [], 11); renderTable('table-external-requests', currentProjectData.externalRequests || [], 8); renderTable('table-risks', currentProjectData.risks || [], 6);
+            await refreshProjectList(); const savedTab = localStorage.getItem('activeTab') || 'description'; switchTab(savedTab);
+        }
+
+        async function saveCurrentProject() {
+            if (!currentFilename || !currentProjectData) return;
+            currentProjectData.title = document.getElementById('p-title').value; 
+            currentProjectData.status = document.getElementById('p-status').value; 
+            currentProjectData.projectPriority = document.getElementById('p-project-priority').value;
+            currentProjectData.code = document.getElementById('p-code').value; currentProjectData.appCode = document.getElementById('p-app-code').value; currentProjectData.alias = document.getElementById('p-alias').value; currentProjectData.clientPm = document.getElementById('p-client-pm').value; currentProjectData.dateEstimation = document.getElementById('p-date-estimation').value; currentProjectData.dateValidation = document.getElementById('p-date-validation').value; currentProjectData.dateDeadline = document.getElementById('p-deadline').value; currentProjectData.budget = document.getElementById('p-budget').value; currentProjectData.jh = document.getElementById('p-jh').value; currentProjectData.clientType = document.getElementById('p-client-type').value; currentProjectData.contexte = document.getElementById('p-contexte').value; currentProjectData.descriptif = document.getElementById('p-descriptif').value; currentProjectData.impacts = document.getElementById('p-impacts').value; currentProjectData.notes = document.getElementById('notes-editor-textarea').value;
+            pmBox = document.getElementById('p-pm-box'); currentProjectData.pm = pmBox ? (pmBox.dataset.pmJson || "[]") : "[]"; currentProjectData.startInit = document.getElementById('p-start-init').value; currentProjectData.startRev = document.getElementById('p-start-rev').value; currentProjectData.endInit = document.getElementById('p-end-init').value; currentProjectData.endRev = document.getElementById('p-end-rev').value;
+            currentProjectData.actions = collectTableData('table-actions'); currentProjectData.externalRequests = collectTableData('table-external-requests'); currentProjectData.risks = collectTableData('table-risks'); currentProjectData.participants = collectTableData('table-participants');
+            const fileHandle = await dirHandle.getFileHandle(currentFilename, { create: true }); const writable = await fileHandle.createWritable(); await writable.write(JSON.stringify(currentProjectData, null, 2)); await writable.close(); alert("Projet enregistré !"); await refreshProjectList();
+        }
+
+        function updateStatusCellColor(select) { const td = select.parentElement; td.className = ''; const val = select.value; if (val === "en cours") td.classList.add('status-en-cours'); else if (val === "bloquée/retardée") td.classList.add('status-bloquee'); else if (val === "terminée") td.classList.add('status-terminee'); else if (val === "abandonnée") td.classList.add('status-abandonnee'); select.style.backgroundColor = "transparent"; select.style.color = "currentColor"; }
+        function updatePriorityCellColor(select) { const td = select.parentElement; const val = select.value; if (val === "P1") { td.style.backgroundColor = "rgba(239, 68, 68, 0.2)"; select.style.color = "#dc2626"; } else if (val === "P2") { td.style.backgroundColor = "rgba(245, 158, 11, 0.2)"; select.style.color = "#d97706"; } else if (val === "P3") { td.style.backgroundColor = "rgba(16, 185, 129, 0.2)"; select.style.color = "#059669"; } select.style.backgroundColor = "transparent"; }
+
+        function renderMultiCommentWidget(td, cellValue) {
+            let comments = []; try { if (cellValue.trim().startsWith('[') && cellValue.trim().endsWith(']')) comments = JSON.parse(cellValue); else if (cellValue.trim()) comments = [{ date: new Date().toLocaleDateString('fr-FR'), text: cellValue }]; } catch (e) { if (cellValue.trim()) comments = [{ date: new Date().toLocaleDateString('fr-FR'), text: cellValue }]; }
+            td.innerHTML = ''; const container = document.createElement('div'); container.className = 'multi-comment-container'; container.dataset.commentsJson = JSON.stringify(comments); container.style = "display:flex; flex-direction:column; gap:4px; font-size:12px; width:100%;"; const latest = comments.length > 0 ? comments[comments.length - 1] : null; const summaryDiv = document.createElement('div'); summaryDiv.style = "display:flex; align-items:center; justify-content:space-between; cursor:pointer; background:rgba(120,120,120,0.08); padding:6px; border-radius:4px;"; const textSpan = document.createElement('span'); textSpan.style = "white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;"; textSpan.innerHTML = latest ? `📅 <b>${escapeHTML(latest.date)}</b>: ${escapeHTML(latest.text)}` : `<span style="color:var(--text-secondary); font-style:italic;">Aucun</span>`; summaryDiv.appendChild(textSpan); summaryDiv.appendChild(document.createElement('span')).innerText = ' ➕'; container.appendChild(summaryDiv); const detailPanel = document.createElement('div'); detailPanel.style = "display:none; flex-direction:column; gap:4px; padding:6px; border:1px solid var(--border); border-radius:4px; background:var(--card-bg);"; const listDiv = document.createElement('div'); listDiv.style = "max-height:120px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;";
+            function refreshList() { listDiv.innerHTML = ''; comments.forEach((c, idx) => { const item = document.createElement('div'); item.style.borderBottom = '1px dashed var(--border)'; item.innerHTML = `<span style="color:var(--primary); font-weight:bold;">[${escapeHTML(c.date)}]</span> <span class="editable-comment-text" contenteditable="true" style="outline:none; display:inline-block; width:80%;">${escapeHTML(c.text)}</span>`; const textEl = item.querySelector('.editable-comment-text'); textEl.onblur = () => { comments[idx].text = textEl.innerText.trim(); container.dataset.commentsJson = JSON.stringify(comments); if(comments.length > 0) textSpan.innerHTML = `📅 <b>${escapeHTML(comments[comments.length - 1].date)}</b>: ${escapeHTML(comments[comments.length - 1].text)}`; }; listDiv.appendChild(item); }); }
+            refreshList(); detailPanel.appendChild(listDiv); const addForm = document.createElement('div'); addForm.style = "display:flex; gap:4px; margin-top:4px;"; const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Ajouter...'; inp.style = "padding:2px; font-size:11px; flex:1;"; const addBtn = document.createElement('button'); addBtn.innerText = '➕'; addBtn.style.cursor = 'pointer'; addBtn.onclick = (e) => { e.stopPropagation(); const txt = inp.value.trim(); if (txt) { comments.push({ date: new Date().toLocaleDateString('fr-FR'), text: txt }); container.dataset.commentsJson = JSON.stringify(comments); inp.value = ''; refreshList(); textSpan.innerHTML = `📅 <b>${escapeHTML(comments[comments.length - 1].date)}</b>: ${escapeHTML(comments[comments.length - 1].text)}`; } }; addForm.appendChild(inp); addForm.appendChild(addBtn); detailPanel.appendChild(addForm); container.appendChild(detailPanel); summaryDiv.onclick = (e) => { e.stopPropagation(); detailPanel.style.display = detailPanel.style.display === 'none' ? 'flex' : 'none'; }; td.appendChild(container);
+        }
+
+        function renderMultiPersonWidget(td, cellValue) {
+            let persons = []; try { if (cellValue.trim().startsWith('[') && cellValue.trim().endsWith(']')) persons = JSON.parse(cellValue); else if (cellValue.trim()) persons = [{ date: new Date().toLocaleDateString('fr-FR'), name: cellValue }]; } catch (e) { if (cellValue.trim()) persons = [{ date: new Date().toLocaleDateString('fr-FR'), name: cellValue }]; }
+            td.innerHTML = ''; const container = document.createElement('div'); container.className = 'multi-person-container'; container.dataset.personsJson = JSON.stringify(persons); container.style = "display:flex; flex-direction:column; gap:4px; font-size:12px; width:100%;";
+            const summaryDiv = document.createElement('div'); summaryDiv.style = "display:flex; align-items:center; justify-content:space-between; cursor:pointer; background:rgba(120,120,120,0.08); padding:6px; border-radius:4px;"; const textSpan = document.createElement('span'); textSpan.style = "white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;";
+            const updateSummaryText = () => { textSpan.innerHTML = persons.length > 0 ? `👤 ` + persons.map(p => escapeHTML(p.name)).join(', ') : `<span style="color:var(--text-secondary); font-style:italic;">Aucun</span>`; }; updateSummaryText();
+            summaryDiv.appendChild(textSpan); summaryDiv.appendChild(document.createElement('span')).innerText = ' ➕'; container.appendChild(summaryDiv);
+            const detailPanel = document.createElement('div'); detailPanel.style = "display:none; flex-direction:column; gap:4px; padding:6px; border:1px solid var(--border); border-radius:4px; background:var(--card-bg);"; const listDiv = document.createElement('div'); listDiv.style = "max-height:120px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;";
+            function refreshList() { listDiv.innerHTML = ''; persons.forEach((p, idx) => { const item = document.createElement('div'); item.style.borderBottom = '1px dashed var(--border)'; item.style.display = 'flex'; item.style.justifyContent = 'space-between'; item.style.padding = '2px 0'; item.innerHTML = `<div><span style="color:var(--primary); font-weight:bold;">[${escapeHTML(p.date)}]</span> <span class="editable-person-text" contenteditable="true" style="outline:none;">${escapeHTML(p.name)}</span></div><span class="remove-person-btn" style="cursor:pointer; color:#dc2626; font-weight:bold;">✕</span>`; const textEl = item.querySelector('.editable-person-text'); textEl.onblur = () => { p.name = textEl.innerText.trim(); container.dataset.personsJson = JSON.stringify(persons); updateSummaryText(); }; item.querySelector('.remove-person-btn').onclick = (e) => { e.stopPropagation(); persons.splice(idx, 1); container.dataset.personsJson = JSON.stringify(persons); refreshList(); updateSummaryText(); }; listDiv.appendChild(item); }); }
+            refreshList(); detailPanel.appendChild(listDiv); const addForm = document.createElement('div'); addForm.style = "display:flex; gap:4px; margin-top:4px;"; const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Nom...'; inp.style = "padding:2px; font-size:11px; flex:1;"; const addBtn = document.createElement('button'); addBtn.innerText = '➕'; addBtn.style.cursor = 'pointer'; addBtn.onclick = (e) => { e.stopPropagation(); const txt = inp.value.trim(); if (txt) { persons.push({ date: new Date().toLocaleDateString('fr-FR'), name: txt }); container.dataset.personsJson = JSON.stringify(persons); inp.value = ''; refreshList(); updateSummaryText(); } }; addForm.appendChild(inp); addForm.appendChild(addBtn); detailPanel.appendChild(addForm); container.appendChild(detailPanel); summaryDiv.onclick = (e) => { e.stopPropagation(); detailPanel.style.display = detailPanel.style.display === 'none' ? 'flex' : 'none'; }; td.appendChild(container);
+        }
+
+        function syncRealizatorsToParticipants() {
+            const actions = collectTableData('table-actions'); const participants = collectTableData('table-participants'); let changesMade = 0;
+            actions.forEach(action => {
+                const teamValue = action["Équipe réalisatrice"]; if (!teamValue || !teamValue.trim()) return;
+                let cluster = 'Général', equipe = teamValue.trim(), usersPart = '';
+                if (teamValue.includes('/')) { const parts = teamValue.split('/').map(p => p.trim()); cluster = parts[0] || 'Général'; equipe = parts[1] || ''; usersPart = parts.slice(2).join(' / '); }
+                const individualNames = usersPart ? usersPart.split('/').map(n => n.trim()).filter(n => n) : [];
+                let match = participants.find(p => p["Cluster / Socle / client"] === cluster && p["Équipe"] === equipe);
+                if (match) {
+                    let cp = []; try { if (match["Personne (Historique)"].startsWith('[')) cp = JSON.parse(match["Personne (Historique)"]); } catch (e) {}
+                    let lu = false; individualNames.forEach(name => { if (!cp.some(c => c.name.toLowerCase() === name.toLowerCase())) { cp.push({ date: new Date().toLocaleDateString('fr-FR'), name: name }); lu = true; } });
+                    if (lu) { match["Personne (Historique)"] = JSON.stringify(cp); changesMade++; }
+                } else {
+                    const np = individualNames.map(name => ({ date: new Date().toLocaleDateString('fr-FR'), name: name }));
+                    participants.push({ "Cluster / Socle / client": cluster, "Équipe": equipe, "Personne (Historique)": JSON.stringify(np), "Disponibilité / jour (%)": "100" }); changesMade++;
+                }
+            });
+            if (changesMade > 0) { renderTable('table-participants', participants, 5); alert(`${changesMade} élément(s) synchronisé(s) !`); }
+            else { alert("Rien à synchroniser."); }
+        }
+
+        function moveStream(streamName, direction) { const data = collectTableData('table-actions'); const streamOrder = []; data.forEach(row => { const sName = (row["Chapitre / Stream"] || 'Général').trim() || 'Général'; if (!streamOrder.includes(sName)) streamOrder.push(sName); }); const index = streamOrder.indexOf(streamName); if (index === -1) return; const newIndex = index + direction; if (newIndex < 0 || newIndex >= streamOrder.length) return; const temp = streamOrder[index]; streamOrder[index] = streamOrder[newIndex]; streamOrder[newIndex] = temp; const sortedData = []; streamOrder.forEach(sName => { data.forEach(row => { if (((row["Chapitre / Stream"] || 'Général').trim() || 'Général') === sName) sortedData.push(row); }); }); renderTable('table-actions', sortedData, 10); }
+
+        function renderTable(tableId, data, colCount) {
+            const table = document.getElementById(tableId); const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim()); const tbody = table.getElementsByTagName('tbody')[0]; tbody.innerHTML = ''; if (data.length === 0) { addRow(tableId, colCount); return; }
+            if (tableId === 'table-actions') {
+                const streams = {}; data.forEach(rowData => { let sn = (rowData["Chapitre / Stream"] || 'Général').trim() || 'Général'; if (!streams[sn]) streams[sn] = []; streams[sn].push(rowData); });
+                Object.keys(streams).forEach(streamName => {
+                    const hasEnCours = streams[streamName].some(r => r["Statut"] === 'en cours'); const headerTr = document.createElement('tr'); headerTr.style = "background:var(--hover-bg); cursor:pointer; font-weight:bold;"; headerTr.dataset.streamHeader = streamName; headerTr.dataset.expanded = hasEnCours ? "true" : "false"; const headerTd = document.createElement('td'); headerTd.colSpan = colCount; headerTd.style.padding = "10px"; const titleSpan = document.createElement('span'); titleSpan.innerHTML = `${hasEnCours ? '📂' : '📁'} <b>Stream: ${escapeHTML(streamName)}</b> <span style="font-weight:normal; font-size:12px; color:var(--text-secondary);">(${streams[streamName].length})</span>`; headerTd.appendChild(titleSpan); const controlsSpan = document.createElement('span'); controlsSpan.style = "float: right; margin-right: 10px; display: flex; gap: 12px; font-weight: normal;"; const upBtn = document.createElement('span'); upBtn.innerHTML = "🔼"; upBtn.onclick = (e) => { e.stopPropagation(); moveStream(streamName, -1); }; const downBtn = document.createElement('span'); downBtn.innerHTML = "🔽"; downBtn.onclick = (e) => { e.stopPropagation(); moveStream(streamName, 1); }; controlsSpan.appendChild(upBtn); controlsSpan.appendChild(downBtn); headerTd.appendChild(controlsSpan); headerTr.appendChild(headerTd); tbody.appendChild(headerTr);
+                    streams[streamName].forEach(rowData => { const tr = document.createElement('tr'); tr.dataset.streamChild = streamName; tr.style.display = hasEnCours ? '' : 'none'; buildRowCells(tr, rowData, tableId, colCount, headers); tbody.appendChild(tr); });
+                    headerTr.onclick = () => { const ie = headerTr.dataset.expanded === "true"; headerTr.dataset.expanded = ie ? "false" : "true"; titleSpan.innerHTML = `${ie ? '📁' : '📂'} <b>Stream: ${escapeHTML(streamName)}</b>`; tbody.querySelectorAll(`tr[data-stream-child="${CSS.escape(streamName)}"]`).forEach(r => r.style.display = ie ? 'none' : ''); };
+                });
+            } else { data.forEach(rowData => { const tr = document.createElement('tr'); buildRowCells(tr, rowData, tableId, colCount, headers); tbody.appendChild(tr); }); }
+            if(tableId === 'table-actions') updateTableAnalysis();
+        }
+
+        function buildRowCells(tr, rowData, tableId, colCount, headers) {
+            for (let i = 0; i < colCount; i++) {
+                const td = document.createElement('td'); const headerName = headers[i]; let cellValue = rowData ? (rowData[headerName] || '') : '';
+                if ((tableId === 'table-actions' || tableId === 'table-external-requests') && headerName === 'Statut') {
+                    td.contentEditable = "false"; const select = document.createElement('select'); select.style = "border:none; background:transparent;"; const options = ["à démarrer", "en cours", "bloquée/retardée", "terminée", "abandonnée"]; options.forEach(opt => { const o = document.createElement('option'); o.value = opt; o.innerText = opt; if(cellValue === opt) o.selected = true; select.appendChild(o); }); select.onchange = () => { updateStatusCellColor(select); updateTableAnalysis(); }; td.appendChild(select); updateStatusCellColor(select);
+                } 
+                else if (tableId === 'table-actions' && headerName === 'Priorité') {
+                    td.contentEditable = "false"; const select = document.createElement('select'); select.style = "border:none; font-weight:bold; background:transparent;"; ["P1", "P2", "P3"].forEach(opt => { const o = document.createElement('option'); o.value = opt; o.innerText = opt; if(cellValue === opt || (!cellValue && opt === "P2")) o.selected = true; select.appendChild(o); }); select.onchange = () => updatePriorityCellColor(select); td.appendChild(select); updatePriorityCellColor(select);
+                }
+                else if (tableId === 'table-actions' && headerName === 'Équipe réalisatrice') {
+                    td.contentEditable = "false"; let optList = getParticipantOptions();
+                    if (optList.length > 0) {
+                        const select = document.createElement('select'); select.style = "border:none; background:transparent; color:var(--text); width:100%; font-size:13.5px;";
+                        if (!optList.includes(cellValue) && cellValue) { let o = document.createElement('option'); o.value = cellValue; o.innerText = cellValue; select.appendChild(o); } 
+                        else if (!cellValue) { let o = document.createElement('option'); o.value = ""; o.innerText = "Choisir une équipe..."; select.appendChild(o); }
+                        optList.forEach(opt => { const o = document.createElement('option'); o.value = opt; o.innerText = opt; if(cellValue === opt) o.selected = true; select.appendChild(o); });
+                        select.onchange = () => { updateTableAnalysis(); }; td.appendChild(select);
+                    } else { td.contentEditable = "true"; td.innerText = cellValue; }
+                }
+                else if ((tableId === 'table-actions' && headerName === 'Commentaire') || (tableId === 'table-external-requests' && headerName === 'Commentaire / Lien')) { td.contentEditable = "false"; renderMultiCommentWidget(td, cellValue); }
+                else if (tableId === 'table-participants' && headerName === 'Personne (Historique)') { td.contentEditable = "false"; renderMultiPersonWidget(td, cellValue); }
+                else if (tableId === 'table-actions' && headerName === 'ID / Préd.') {
+                    td.contentEditable = "false"; td.style.position = "relative"; td.style.cursor = "pointer"; let idPred = { id: rowData ? (rowData["ID"] || "") : "", pred: rowData ? (rowData["Prédécesseur"] || "") : "" }; if (cellValue.startsWith('{')) { try { idPred = JSON.parse(cellValue); } catch(e){} } td.dataset.idPredJson = JSON.stringify(idPred); const renderIdPredText = (obj) => `<b>${escapeHTML(obj.id || '???')}</b>` + (obj.pred ? ` <span style="background:rgba(0,120,212,0.1); padding:2px 5px; border-radius:4px; font-size:11px;">🔗 ${escapeHTML(obj.pred)}</span>` : ''); td.innerHTML = renderIdPredText(idPred);
+                    td.onclick = (e) => { 
+                        if (td.querySelector('.idpred-popover')) return; e.stopPropagation(); document.querySelectorAll('.idpred-popover, .dates-popover, .global-dates-popover').forEach(p => p.remove()); const popover = document.createElement('div'); popover.className = 'idpred-popover'; popover.style = "position:absolute; top:100%; left:0; z-index:100; background:var(--card-bg); border:1px solid var(--border); padding:10px; border-radius:6px; display:flex; flex-direction:column; gap:6px;"; popover.innerHTML = `<input type="text" value="${escapeHTML(idPred.id)}" id="pop-id"><input type="text" value="${escapeHTML(idPred.pred)}" id="pop-pred"><button class="btn" id="btn-save-idpred">OK</button>`; 
+                        popover.querySelector('#btn-save-idpred').onclick = (ev) => { ev.stopPropagation(); idPred.id = popover.querySelector('#pop-id').value.trim(); idPred.pred = popover.querySelector('#pop-pred').value.trim(); td.dataset.idPredJson = JSON.stringify(idPred); td.innerHTML = renderIdPredText(idPred); popover.remove(); updateTableAnalysis(); }; td.appendChild(popover);
+                    };
+                }
+                else if ((tableId === 'table-actions' && (headerName === 'Planning (Début ➜ Fin)' || headerName === 'Rétro-planning')) || (tableId === 'table-external-requests' && headerName === 'Dates (Demande ➜ Échéance)')) {
+                    td.contentEditable = "false"; td.style.position = "relative"; td.style.cursor = "pointer"; if (headerName === 'Rétro-planning') { td.className = 'retro-col'; if (document.querySelector('th.retro-col').style.display === 'none') td.style.display = 'none'; }
+                    let dates = { start: "", end: "", rev: "" }; if (cellValue.startsWith('{')) { try { dates = JSON.parse(cellValue); } catch(e){} } else if (rowData) { dates.start = formatDateToISO(rowData["Date Début"] || rowData["Date Demande"] || ""); dates.end = formatDateToISO(rowData["Échéance"] || rowData["Échéance attendue"] || ""); if (headerName !== 'Rétro-planning') dates.rev = formatDateToISO(rowData["Date Révisée"] || ""); }
+                    td.dataset.datesJson = JSON.stringify(dates); const renderCompactText = (d) => { const fmt = (dt) => { const p = safeParseDate(dt); return p ? p.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'}) : '??'; }; if (!d.start && !d.end) return `<span style="color:var(--text-secondary); font-style:italic;">Planifier</span>`; return (headerName !== 'Rétro-planning' && d.rev) ? `📅 ${fmt(d.start)} ➜ <s>${fmt(d.end)}</s> <span style="color:#d83b01; font-weight:bold;">${fmt(d.rev)}</span>` : `📅 ${fmt(d.start)} ➜ ${fmt(d.end)}`; }; td.innerHTML = renderCompactText(dates);
+                    td.onclick = (e) => { 
+                        if (td.querySelector('.dates-popover')) return; e.stopPropagation(); document.querySelectorAll('.idpred-popover, .dates-popover, .global-dates-popover').forEach(p => p.remove()); const popover = document.createElement('div'); popover.className = 'dates-popover'; popover.style = "position:absolute; top:100%; left:0; z-index:100; background:var(--card-bg); border:1px solid var(--border); padding:10px; border-radius:6px; display:flex; flex-direction:column; gap:4px;"; 
+                        popover.innerHTML = `<input type="date" value="${dates.start}" id="pop-start"><input type="date" value="${dates.end}" id="pop-end">` + (headerName !== 'Rétro-planning' ? `<input type="date" value="${dates.rev}" id="pop-rev">` : '') + `<button class="btn" id="btn-save-dates">OK</button>`; 
+                        popover.querySelector('#btn-save-dates').onclick = (ev) => { ev.stopPropagation(); dates.start = popover.querySelector('#pop-start').value; dates.end = popover.querySelector('#pop-end').value; if(headerName !== 'Rétro-planning') dates.rev = popover.querySelector('#pop-rev').value; td.dataset.datesJson = JSON.stringify(dates); td.innerHTML = renderCompactText(dates); popover.remove(); updateTableAnalysis(); }; td.appendChild(popover);
+                    };
+                }
+                else if (headerName && (headerName.toLowerCase().includes('date') || headerName.toLowerCase().includes('échéance'))) { td.contentEditable = "false"; const dateInp = document.createElement('input'); dateInp.type = "date"; dateInp.value = formatDateToISO(cellValue); dateInp.style = "border:none; background:transparent; color:var(--text); width:100%;"; dateInp.onchange = () => updateTableAnalysis(); td.appendChild(dateInp); } 
+                else if (headerName === 'Poids (JH)') { td.className = 'jh-col'; if (document.querySelector('th.jh-col').style.display === 'none') td.style.display = 'none'; td.contentEditable = "true"; td.innerText = cellValue; }
+                else if (headerName === '🗑️') { td.contentEditable = "false"; td.style.textAlign = "center"; td.innerHTML = `<span style="cursor:pointer; color:#dc2626; font-weight:bold;">✕</span>`; td.onclick = (e) => { e.stopPropagation(); if (confirm("Supprimer la ligne ?")) { tr.remove(); updateTableAnalysis(); } }; }
+                else { td.contentEditable = "true"; td.innerText = cellValue; } tr.appendChild(td);
+            }
+        }
+
+        function addRow(tableId, colCount, useAutoId = false) {
+            const table = document.getElementById(tableId); const tbody = table.getElementsByTagName('tbody')[0]; const tr = document.createElement('tr');
+            let initialData = useAutoId ? { "ID / Préd.": JSON.stringify({ id: generateNextActionID(), pred: "" }), "Chapitre / Stream": "Général", "Priorité": "P2", "Statut": "à démarrer" } : null;
+            buildRowCells(tr, initialData, tableId, colCount, Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim())); tbody.appendChild(tr); if(tableId === 'table-actions') updateTableAnalysis();
+        }
+
+        function collectTableData(tableId) {
+            const headers = Array.from(document.getElementById(tableId).querySelectorAll('thead th')).map(th => th.innerText.trim());
+            const rows = document.getElementById(tableId).getElementsByTagName('tbody')[0].rows; const data = [];
+            for (let i = 0; i < rows.length; i++) {
+                if (rows[i].dataset.streamHeader || rows[i].cells.length === 1) continue;
+                const rowCells = rows[i].cells; const rowObj = {}; let hasContent = false;
+                for (let j = 0; j < rowCells.length; j++) {
+                    const headerName = headers[j]; if (headerName === '🗑️') continue;
+                    let val = ""; const sel = rowCells[j].querySelector('select'); const dateInp = rowCells[j].querySelector('input[type="date"]'); 
+                    const mc = rowCells[j].querySelector('.multi-comment-container'); const mp = rowCells[j].querySelector('.multi-person-container');
+                    if (sel) val = sel.value; 
+                    else if (rowCells[j].dataset.idPredJson) { val = rowCells[j].dataset.idPredJson; try { const p = JSON.parse(val); rowObj["ID"] = p.id; rowObj["Prédécesseur"] = p.pred; } catch(e){} } 
+                    else if (rowCells[j].dataset.datesJson) val = rowCells[j].dataset.datesJson; 
+                    else if (dateInp) val = dateInp.value; 
+                    else if (mc) val = mc.dataset.commentsJson || "[]"; 
+                    else if (mp) val = mp.dataset.personsJson || "[]"; 
+                    else val = rowCells[j].innerText.trim();
+                    if(val) hasContent = true; rowObj[headerName] = val;
+                }
+                if(hasContent) data.push(rowObj);
+            }
+            return data;
+        }
+
+        function changeGanttZoom(mode) { ganttViewMode = mode; generatePlanningView(); }
+        function toggleGanttStream(rowEl, streamName) { document.querySelectorAll(`div[data-gantt-child="${CSS.escape(streamName)}"]`).forEach(r => { r.style.display = (r.style.display === 'none') ? 'flex' : 'none'; }); }
+
+        function generatePlanningView() {
+            const container = document.getElementById('tab-planning');
+            let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><h3 style="margin:0;">Plannings Gantt</h3><div style="display:flex; gap:5px; background:var(--header-bg); padding:4px; border-radius:6px;"><button class="btn btn-secondary" style="padding:4px 10px; font-size:11px; margin:0;" onclick="changeGanttZoom('days')">Jour</button><button class="btn btn-secondary" style="padding:4px 10px; font-size:11px; margin:0;" onclick="changeGanttZoom('weeks')">Semaine</button><button class="btn btn-secondary" style="padding:4px 10px; font-size:11px; margin:0;" onclick="changeGanttZoom('months')">Mois</button></div></div>`;
+            
+            function renderSpecificGantt(title, dateKey, showWarningIfEmpty) {
+                const pStart = safeParseDate(document.getElementById('p-start-rev').value || document.getElementById('p-start-init').value);
+                let pEnd = safeParseDate((dateKey === 'Rétro-planning' && document.getElementById('p-deadline').value) ? document.getElementById('p-deadline').value : (document.getElementById('p-end-rev').value || document.getElementById('p-end-init').value));
+                if (!pStart || !pEnd || pStart >= pEnd) return showWarningIfEmpty ? `<p style="color:var(--text-secondary); font-style:italic;">⚠️ Définissez des dates globales projet.</p>` : '';
+                const actions = collectTableData('table-actions'); if (actions.length === 0 || (dateKey === 'Rétro-planning' && !actions.some(r => { try { const d = JSON.parse(r["Rétro-planning"] || '{}'); return d.start || d.end; } catch(e){return false;} }))) return '';
+                const totalTime = pEnd.getTime() - pStart.getTime(); const totalDays = totalTime / 86400000;
+                let months = []; let current = new Date(pStart.getFullYear(), pStart.getMonth(), 1); while (current <= new Date(pEnd.getFullYear(), pEnd.getMonth(), 1)) { months.push(new Date(current)); current.setMonth(current.getMonth() + 1); }
+                let intervals = []; let tCurrent = new Date(pStart);
+                months.forEach(mStart => { let mEnd = new Date(mStart.getFullYear(), mStart.getMonth() + 1, 1); let iStart = (tCurrent > mStart) ? tCurrent : mStart; let iEnd = (pEnd < mEnd) ? pEnd : mEnd; let days = (iEnd.getTime() - iStart.getTime()) / 86400000; if (days > 0) { intervals.push({ label: mStart.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }), pct: (days / totalDays) * 100, start: new Date(iStart), end: new Date(iEnd) }); } tCurrent = iEnd; });
+                let tasksMap = {};
+                actions.forEach((row, idx) => {
+                    const id = (row["ID"] || '').trim() || `_row_${idx}`; let ts = "", te = ""; let pjs = row[dateKey]; if (pjs) { try { const o = JSON.parse(pjs); ts = o.start || ""; te = o.rev || o.end || ""; } catch(e){} }
+                    if (dateKey === 'Rétro-planning' && !ts && !te && row["Planning (Début ➜ Fin)"]) { try { const o = JSON.parse(row["Planning (Début ➜ Fin)"]); ts = o.start || ""; te = o.rev || o.end || ""; } catch(e){} }
+                    let jh = parseFloat(row["Poids (JH)"]) || 0; let tStart = safeParseDate(ts), tEnd = safeParseDate(te);
+                    if (!tStart && tEnd && jh) tStart = new Date(tEnd.getTime() - (jh * 86400000)); if (!tEnd && tStart && jh) tEnd = new Date(tStart.getTime() + (jh * 86400000));
+                    tasksMap[id] = { id, row, start: tStart || new Date(pStart), end: tEnd || new Date(pEnd), pred: (row["Prédécesseur"] || '').trim(), isCritical: false, team: (row["Équipe réalisatrice"] || '').trim() };
+                });
+                let maxEndTime = 0; let finalTask = null; Object.values(tasksMap).forEach(t => { if (t.end.getTime() > maxEndTime) { maxEndTime = t.end.getTime(); finalTask = t; } });
+                let visited = new Set(); let curr = finalTask; while (curr && !visited.has(curr.id)) { visited.add(curr.id); curr.isCritical = true; curr = (curr.pred && tasksMap[curr.pred]) ? tasksMap[curr.pred] : null; }
+                let sg = {}; Object.values(tasksMap).forEach(t => { const sn = (t.row["Chapitre / Stream"] || 'Général').trim() || 'Général'; if (!sg[sn]) sg[sn] = []; sg[sn].push(t); });
+                let gHtml = `<h4 style="margin-top:25px; color:var(--primary); border-left: 4px solid var(--primary); padding-left: 8px;">${title}</h4><div class="gantt-container"><div class="gantt-header"><div class="gantt-label">Actions</div><div style="flex:1; display:flex; position:relative;">`;
+                intervals.forEach(int => { gHtml += `<div style="width:${int.pct}%; border-right:1px solid var(--border); text-align:center;"><div style="padding:6px 0; font-size:12px; border-bottom:1px solid var(--border);">${escapeHTML(int.label)}</div>`; if (ganttViewMode === 'days') { gHtml += `<div style="display:flex; font-size:9px; color:var(--text-secondary);">`; let nd = Math.round((int.end.getTime() - int.start.getTime()) / 86400000); for (let d = 0; d < nd; d++) { let tmp = new Date(int.start); tmp.setDate(tmp.getDate() + d); gHtml += `<div style="flex:1; border-right:1px solid rgba(0,0,0,0.03);">${tmp.getDate()}</div>`; } gHtml += `</div>`; } gHtml += `</div>`; });
+                gHtml += `</div></div>`;
+                let bl = ''; let cl = 0; 
+                
+                /* ==========================================================================
+                   RÉPARATION CRITIQUE : FERMETURE DE BALISE CORRECTE SANS FUITE DE CHAÎNE
+                   ========================================================================== */
+                intervals.forEach((int, idx) => { if (idx < intervals.length - 1) { cl += int.pct; bl += `<div style="position:absolute; left:${cl}%; top:0; bottom:0; border-left:1px dashed var(--border); z-index:1; pointer-events:none;"></div>`; } });
+                
+                if (new Date() >= pStart && new Date() <= pEnd) { bl += `<div style="position:absolute; left:${((new Date().getTime() - pStart.getTime()) / totalTime) * 100}%; top:0; bottom:0; border-left:2px dotted #dc2626; z-index:10; pointer-events:none;"></div>`; }
+                Object.keys(sg).forEach(streamName => {
+                    const dynamicUniqueStreamName = dateKey.replace(/[^a-zA-Z]/g, '') + streamName.replace(/'/g, "\\'");
+                    gHtml += `<div class="gantt-row" style="background:var(--hover-bg); font-weight:bold; height:36px; cursor:pointer;" onclick="toggleGanttStream(this, '${dynamicUniqueStreamName}')"><div class="gantt-label">Stream: ${escapeHTML(streamName)}</div><div class="gantt-timeline">${bl}</div></div>`;
+                    sg[streamName].forEach(t => {
+                        let rStart = t.start < pStart ? pStart : t.start; let rEnd = t.end > pEnd ? pEnd : t.end; if (rEnd < pStart || rStart > pEnd) return; const leftPct = ((rStart.getTime() - pStart.getTime()) / totalTime) * 100; const widthPct = ((rEnd.getTime() - rStart.getTime()) / totalTime) * 100;
+                        let sc = (t.row["Statut"] || 'à démarrer').replace('à démarrer','a-demarrer').replace('en cours','en-cours').replace('bloquée/retardée','bloquee').replace('terminée','terminee').replace('abandonnée','abandonnee');
+                        gHtml += `<div class="gantt-row" data-gantt-child="${escapeHTML(dynamicUniqueStreamName)}" style="display:flex;"><div class="gantt-label"><b>[${escapeHTML(t.id)}]</b> ${escapeHTML(t.row["Description de l'action"] || '')}</div><div class="gantt-timeline">${bl}<div class="gantt-bar ${sc}${t.isCritical ? ' critical' : ''}" title="${escapeHTML(t.id)}" style="left:${leftPct}%; width:${widthPct < 2 ? 2 : widthPct}%;"><span style="padding-left:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHTML(t.team || 'N/A')}</span></div></div></div>`;
+                    });
+                });
+                return gHtml + `</div>`;
+            }
+            container.innerHTML = html + renderSpecificGantt("📅 Diagramme de Gantt Initial / Révisé", "Planning (Début ➜ Fin)", true) + renderSpecificGantt("⏳ Diagramme de Gantt Rétro-planning", "Rétro-planning", false);
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); localStorage.setItem('activeTab', tabName);
+            const st = Array.from(document.querySelectorAll('.tab')).find(t => t.getAttribute('onclick').includes(tabName)); if(st) st.classList.add('active');
+            if (tabName === 'description') document.getElementById('tab-description').classList.add('active');
+            else if (tabName === 'contexte') document.getElementById('tab-contexte').classList.add('active');
+            else if (tabName === 'plan-action') { document.getElementById('tab-plan-action').classList.add('active'); if (currentProjectData) { renderTable('table-actions', collectTableData('table-actions'), 11); } updateTableAnalysis(); }
+            else if (tabName === 'kanban') { document.getElementById('tab-kanban').classList.add('active'); buildKanbanBoard(); }
+            else if (tabName === 'planning') { document.getElementById('tab-planning').classList.add('active'); generatePlanningView(); }
+            else if (tabName === 'notes') { document.getElementById('tab-notes').classList.add('active'); if(isPreviewMode) toggleNotesPreview(); }
+        }
+    </script>
+</body>
+</html>
