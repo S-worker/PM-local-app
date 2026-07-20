@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Guide API Securichat (Prisme.ai)</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        h1 { color: #1a5276; }
+        h2 { color: #2874a6; border-bottom: 2px solid #2874a6; padding-bottom: 5px; }
+        h3 { color: #2e86c1; }
+        pre { background-color: #f4f4f4; padding: 10px; border-left: 4px solid #2874a6; overflow-x: auto; }
+        code { font-family: Consolas, monospace; color: #c0392b; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #2874a6; color: white; }
+        .warning { background-color: #f9e79f; padding: 10px; border-left: 4px solid #f1c40f; }
+        .info { background-color: #d4e6f1; padding: 10px; border-left: 4px solid #2e86c1; }
+        .success { background-color: #d5f5e3; padding: 10px; border-left: 4px solid #27ae60; }
+        .danger { background-color: #fadbd8; padding: 10px; border-left: 4px solid #e74c3c; }
+    </style>
+</head>
+<body>
+
+<h1>Guide API Securichat (Prisme.ai)</h1>
+
+<div class="info">
+    <strong>URL de base :</strong> <code>https://api.cagip-securichat-prd.aws.cagip.gca/v2</code><br>
+    <strong>Documentation générale Prisme.ai :</strong> <a href="https://docs.prisme.ai/api-reference/sdks" target="_blank">https://docs.prisme.ai/api-reference/sdks</a>
+</div>
+
+<h2>1. Authentification</h2>
+
+<p>Toutes les requêtes doivent inclure le token d'accès dans le header <code>Authorization</code>.</p>
+
+<pre><code>export SECURICHAT_TOKEN="ton_token_ici"
+
+curl -X GET "https://api.cagip-securichat-prd.aws.cagip.gca/v2/workspaces" \
+  -H "Authorization: Bearer $SECURICHAT_TOKEN"</code></pre>
+
+<h2>2. Endpoints confirmés</h2>
+
+<table>
+    <tr><th>Endpoint</th><th>Méthode</th><th>Description</th><th>État</th></tr>
+    <tr><td><code>/workspaces</code></td><td>GET</td><td>Lister les workspaces</td><td><span class="success">✅ Fonctionnel</span></td></tr>
+    <tr><td><code>/workspaces/:id</code></td><td>GET</td><td>Détail d'un workspace</td><td><span class="success">✅ Fonctionnel</span></td></tr>
+    <tr><td><code>/workspaces</code></td><td>POST</td><td>Créer un workspace</td><td><span class="success">✅ Fonctionnel</span></td></tr>
+    <tr><td><code>/workspaces/:id</code></td><td>PATCH</td><td>Modifier un workspace</td><td><span class="success">✅ Fonctionnel</span></td></tr>
+    <tr><td><code>/workspaces/:id</code></td><td>DELETE</td><td>Supprimer un workspace</td><td><span class="success">✅ Fonctionnel</span></td></tr>
+    <tr><td><code>/workspaces/:id/pages</code></td><td>GET</td><td>Lister les pages</td><td><span class="success">✅ Fonctionnel</span></td></tr>
+    <tr><td><code>/workspaces/:id/pages</code></td><td>POST</td><td>Créer une page</td><td><span class="success">✅ Fonctionnel</span></td></tr>
+    <tr><td><code>/workspaces/:id/pages/:slug</code></td><td>DELETE</td><td>Supprimer une page (utiliser le slug)</td><td><span class="success">✅ Fonctionnel</span></td></tr>
+    <tr><td><code>/workspaces/:id/automations</code></td><td>POST</td><td>Créer une automation/agent</td><td><span class="success">✅ Fonctionnel</span></td></tr>
+    <tr><td><code>/workspaces/:id/automations/:slug</code></td><td>DELETE</td><td>Supprimer une automation (utiliser le slug)</td><td><span class="success">✅ Fonctionnel</span></td></tr>
+    <tr><td><code>/users</code></td><td>PATCH</td><td>Rechercher / modifier des utilisateurs</td><td><span class="warning">⚠️ Schéma du champ <code>data</code> inconnu</span></td></tr>
+</table>
+
+<h2>3. Exemples d'utilisation</h2>
+
+<h3>3.1 Lister les workspaces</h3>
+
+<pre><code>curl -s -X GET "https://api.cagip-securichat-prd.aws.cagip.gca/v2/workspaces" \
+  -H "Authorization: Bearer $SECURICHAT_TOKEN"</code></pre>
+
+<h3>3.2 Créer un workspace</h3>
+
+<pre><code>curl -s -X POST "https://api.cagip-securichat-prd.aws.cagip.gca/v2/workspaces" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $SECURICHAT_TOKEN" \
+  -d '{"name": "Test Workspace"}'</code></pre>
+
+<p>Réponse :</p>
+
+<pre><code>{"name":"Test Workspace","id":"gGh0Udq","slug":"cowardly-cougar-16"}</code></pre>
+
+<h3>3.3 Modifier un workspace</h3>
+
+<pre><code>curl -s -X PATCH "https://api.cagip-securichat-prd.aws.cagip.gca/v2/workspaces/gGh0Udq" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $SECURICHAT_TOKEN" \
+  -d '{"description": "Workspace de test"}'</code></pre>
+
+<h3>3.4 Créer une page</h3>
+
+<pre><code>curl -s -X POST "https://api.cagip-securichat-prd.aws.cagip.gca/v2/workspaces/gGh0Udq/pages" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $SECURICHAT_TOKEN" \
+  -d '{"name": "Test Page"}'</code></pre>
+
+<p>Réponse :</p>
+
+<pre><code>{"name":"Test Page","slug":"mighty-termite-21","id":"NGyK2lD","workspaceId":"gGh0Udq"}</code></pre>
+
+<h3>3.5 Créer une automation / agent</h3>
+
+<pre><code>curl -s -X POST "https://api.cagip-securichat-prd.aws.cagip.gca/v2/workspaces/gGh0Udq/automations" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $SECURICHAT_TOKEN" \
+  -d '{"name": "Test Automation", "do": []}'</code></pre>
+
+<p>Réponse :</p>
+
+<pre><code>{"name":"Test Automation","do":[],"slug":"Test Automation-1"}</code></pre>
+
+<div class="warning">
+    <strong>Attention :</strong> le champ <code>do</code> est obligatoire. C'est le DSL (graphe d'actions) de l'automation Prisme.ai.
+</div>
+
+<h3>3.6 Rechercher des utilisateurs par ID</h3>
+
+<pre><code>curl -s -X PATCH "https://api.cagip-securichat-prd.aws.cagip.gca/v2/users" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $SECURICHAT_TOKEN" \
+  -d '{"query": {"ids": ["690b11d1bc549bb3a28377c6"]}, "data": {}}'</code></pre>
+
+<h3>3.7 Rechercher des utilisateurs par email</h3>
+
+<pre><code>curl -s -X PATCH "https://api.cagip-securichat-prd.aws.cagip.gca/v2/users" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $SECURICHAT_TOKEN" \
+  -d '{"query": {"emails": ["prenom.nom@cagip.fr"]}, "data": {}}'</code></pre>
+
+<div class="danger">
+    <strong>Blocage connu :</strong> le champ <code>data</code> de <code>PATCH /v2/users</code> est <strong>obligatoire et non vide</strong>, mais son schéma est inconnu. Il refuse les champs testés : <code>firstname</code>, <code>role</code>, <code>roles</code>, <code>permissions</code>, <code>workspaces</code>, <code>tags</code>. Même <code>data: {}</code> retourne <code>data body must not be empty</code>. Contactez l'équipe Securichat pour obtenir le schéma exact.
+</div>
+
+<h3>3.8 Supprimer une page</h3>
+
+<pre><code>curl -s -X DELETE "https://api.cagip-securichat-prd.aws.cagip.gca/v2/workspaces/gGh0Udq/pages/mighty-termite-21" \
+  -H "Authorization: Bearer $SECURICHAT_TOKEN"</code></pre>
+
+<div class="warning">
+    <strong>Attention :</strong> l'API utilise le <strong>slug</strong> pour identifier les pages et les automations, pas leur <code>id</code>.
+</div>
+
+<h3>3.9 Supprimer une automation</h3>
+
+<pre><code>curl -s -X DELETE "https://api.cagip-securichat-prd.aws.cagip.gca/v2/workspaces/gGh0Udq/automations/Test%20Automation-1" \
+  -H "Authorization: Bearer $SECURICHAT_TOKEN"</code></pre>
+
+<h3>3.10 Supprimer un workspace</h3>
+
+<pre><code>curl -s -X DELETE "https://api.cagip-securichat-prd.aws.cagip.gca/v2/workspaces/gGh0Udq" \
+  -H "Authorization: Bearer $SECURICHAT_TOKEN"</code></pre>
+
+<h2>4. Interprétation des erreurs courantes</h2>
+
+<table>
+    <tr><th>Erreur</th><th>Signification</th><th>Solution</th></tr>
+    <tr><td><code>GET method not allowed</code></td><td>L'endpoint existe mais la méthode GET n'est pas supportée.</td><td>Essayer POST, PATCH ou DELETE.</td></tr>
+    <tr><td><code>POST method not allowed</code></td><td>L'endpoint n'accepte pas POST.</td><td>Essayer PATCH ou PUT.</td></tr>
+    <tr><td><code>Route not found</code></td><td>L'endpoint n'existe pas sur cette instance.</td><td>Vérifier la documentation ou contacter l'équipe Securichat.</td></tr>
+    <tr><td><code>401 Unauthorized / 403 Forbidden</code></td><td>Token invalide, expiré, ou permissions insuffisantes.</td><td>Renouveler le token ou vérifier les droits.</td></tr>
+    <tr><td><code>must have required property 'do'</code></td><td>Le body POST est incomplet.</td><td>Ajouter le champ obligatoire indiqué.</td></tr>
+    <tr><td><code>must NOT have additional properties</code></td><td>Le body contient un champ non autorisé.</td><td>Supprimer le champ ou vérifier le schéma OpenAPI.</td></tr>
+    <tr><td><code>Object not found</code></td><td>L'objet n'existe plus (déjà supprimé) ou l'identifiant est incorrect.</td><td>Vérifier l'ID/slug ou recréer l'objet.</td></tr>
+</table>
+
+<h2>5. Scripts disponibles</h2>
+
+<table>
+    <tr><th>Script</th><th>Chemin</th><th>Usage</th></tr>
+    <tr><td>Exploration générale</td><td><code>/Users/U73LL72/test_securichat_api.sh</code></td><td>Tester les endpoints GET/POST probables.</td></tr>
+    <tr><td>Exploration workspace</td><td><code>/Users/U73LL72/explore_securichat_workspace.sh</code></td><td>Explorer un workspace et ses sous-ressources.</td></tr>
+    <tr><td>Nettoyage</td><td><code>/Users/U73LL72/cleanup_securichat_test.sh</code></td><td>Supprimer les objets de test créés.</td></tr>
+</table>
+
+<h2>6. SDK sur Artifactory</h2>
+
+<p>Pour choisir la bonne version du SDK Prisme.ai / Securichat :</p>
+
+<table>
+    <tr><th>Critère</th><th>Recommandation</th></tr>
+    <tr><td>Version de l'API</td><td>L'URL contient <code>v2</code> → prendre le SDK compatible API v2.</td></tr>
+    <tr><td>Langage</td><td>Python, Node.js, Java selon ton projet.</td></tr>
+    <tr><td>Stabilité</td><td>Privilégier la version la plus récente stable (éviter RC/snapshot).</td></tr>
+    <tr><td>Nom du package</td><td>Chercher <code>securichat</code> ou <code>prismeai</code> dans Artifactory.</td></tr>
+    <tr><td>Documentation</td><td><a href="https://docs.prisme.ai/api-reference/sdks" target="_blank">https://docs.prisme.ai/api-reference/sdks</a></td></tr>
+</table>
+
+<pre><code>jfrog rt s "*securichat*" | head -20
+jfrog rt s "*prismeai*" | head -20</code></pre>
+
+<h2>7. Authentification et renouvellement du token</h2>
+
+<h3>7.1 Type de token</h3>
+
+<p>Le token utilisé lors de l'exploration était un <strong>access token</strong>. Il permet :</p>
+
+<ul>
+    <li>La lecture des workspaces.</li>
+    <li>La création/modification/suppression de workspaces, pages et automations.</li>
+    <li>La recherche d'utilisateurs.</li>
+</ul>
+
+<p>Certaines opérations (comme la mise à jour avancée des utilisateurs via <code>PATCH /users</code>) peuvent nécessiter un autre type de token :</p>
+
+<ul>
+    <li><strong>Service token</strong> : pour les appels machine-to-machine.</li>
+    <li><strong>Admin token</strong> : pour la gestion des utilisateurs et des permissions.</li>
+    <li><strong>Session JWT</strong> : pour les actions liées à la session utilisateur connecté.</li>
+</ul>
+
+<h3>7.2 Stockage sécurisé du token</h3>
+
+<p>Ne jamais :</p>
+
+<ul>
+    <li>Commiter le token dans un dépôt Git.</li>
+    <li>L'écrire en dur dans un script partagé.</li>
+    <li>L'afficher dans des logs ou des captures d'écran.</li>
+</ul>
+
+<p>Privilégier :</p>
+
+<ul>
+    <li>Les variables d'environnement.</li>
+    <li>Les vaults (HashiCorp Vault, AWS Secrets Manager, etc.).</li>
+    <li>Les fichiers de configuration avec permissions restreintes.</li>
+</ul>
+
+<h3>7.3 Renouvellement</h3>
+
+<p>Si le token expire, il faut le régénérer depuis l'interface Securichat ou contacter l'équipe responsable. La procédure exacte dépend de la configuration SSO/CAGIP en place.</p>
+
+<pre><code># Vérifier si le token est encore valide
+curl -s -X GET "https://api.cagip-securichat-prd.aws.cagip.gca/v2/workspaces" \
+  -H "Authorization: Bearer $SECURICHAT_TOKEN" \
+  -o /dev/null -w "%{http_code}\n"
+
+# Si le code retour est 401, le token est expiré ou invalide.</code></pre>
+
+<h2>8. Exemples de payloads pour les automations</h2>
+
+<p>Une automation Prisme.ai est définie par un graphe d'actions dans le champ <code>do</code>. Voici des exemples de structures possibles.</p>
+
+<h3>8.1 Automation minimale</h3>
+
+<pre><code>{
+  "name": "Automation minimale",
+  "do": []
+}</code></pre>
+
+<h3>8.2 Automation avec un agent LLM</h3>
+
+<pre><code>{
+  "name": "Assistant RH",
+  "do": [
+    {
+      "id": "llm",
+      "type": " assistant",
+      "config": {
+        "model": "gpt-4",
+        "systemPrompt": "Tu es un assistant RH pour la CAGIP."
+      }
+    }
+  ]
+}</code></pre>
+
+<div class="warning">
+    <strong>Attention :</strong> le type exact et la structure dépendent de la version du moteur Prisme.ai utilisée par l'instance Securichat. Ces exemples sont des hypothèses à valider avec l'équipe produit.
+</div>
+
+<h3>8.3 Automation avec un webhook entrant</h3>
+
+<pre><code>{
+  "name": "Webhook Trigger",
+  "do": [
+    {
+      "id": "trigger",
+      "type": "webhook",
+      "config": {
+        "method": "POST",
+        "path": "/incoming/rh-request"
+      }
+    },
+    {
+      "id": "notify",
+      "type": "email",
+      "config": {
+        "to": "equipe@ca-gip.fr"
+      }
+    }
+  ]
+}</code></pre>
+
+<h3>8.4 Créer une automation via l'API</h3>
+
+<pre><code>curl -s -X POST "https://api.cagip-securichat-prd.aws.cagip.gca/v2/workspaces/gGh0Udq/automations" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $SECURICHAT_TOKEN" \
+  -d '{
+    "name": "Assistant RH",
+    "do": [
+      {
+        "id": "llm",
+        "type": "assistant",
+        "config": {
+          "model": "gpt-4",
+          "systemPrompt": "Tu es un assistant RH."
+        }
+      }
+    ]
+  }'</code></pre>
+
+<h2>9. Comparaison avec la documentation officielle Prisme.ai</h2>
+
+<p>L'instance <code>cagip-securichat-prd</code> est une instance customisée de Prisme.ai. Elle n'expose pas tous les endpoints documentés officiellement.</p>
+
+<table>
+    <tr><th>Endpoint officiel Prisme.ai</th><th>État sur Securichat CAGIP</th><th>Commentaire</th></tr>
+    <tr><td><code>GET /v2/auth/me</code></td><td>❌ Route not found</td><td>Profil connecté non exposé.</td></tr>
+    <tr><td><code>POST /v2/auth/login</code></td><td>❌ Route not found</td><td>Authentification gérée par le SSO CAGIP.</td></tr>
+    <tr><td><code>GET /v2/agents</code></td><td>❌ Route not found</td><td>Les agents sont des automations dans les workspaces.</td></tr>
+    <tr><td><code>GET /v2/threads</code></td><td>❌ Route not found</td><td>Endpoint non exposé.</td></tr>
+    <tr><td><code>GET /v2/conversations</code></td><td>❌ Route not found</td><td>Endpoint non exposé.</td></tr>
+    <tr><td><code>GET /v2/workspaces</code></td><td>✅ Fonctionnel</td><td>Liste des workspaces accessibles.</td></tr>
+    <tr><td><code>POST /v2/workspaces/:id/automations</code></td><td>✅ Fonctionnel</td><td>Création d'automations.</td></tr>
+    <tr><td><code>PATCH /v2/users</code></td><td>⚠️ Partiel</td><td>Recherche OK, schéma <code>data</code> inconnu.</td></tr>
+</table>
+
+<div class="info">
+    <strong>Conclusion :</strong> l'API Securichat CAGIP est une version restreinte de l'API Prisme.ai. Pour toute opération avancée, il est recommandé de demander la documentation spécifique de l'instance ou un compte avec des droits élevés.
+</div>
+
+<h2>10. Codage agentique avec Securichat</h2>
+
+<h3>10.1 Ce qui est possible</h3>
+
+<table>
+    <tr><th>Cas d'usage</th><th>Possible ?</th><th>Commentaire</th></tr>
+    <tr><td>Définir des agents en code (Infrastructure as Code)</td><td>✅ Oui</td><td>Via <code>POST /workspaces/:id/automations</code>.</td></tr>
+    <tr><td>Créer des workspaces par environnement</td><td>✅ Oui</td><td>Via <code>POST /workspaces</code>.</td></tr>
+    <tr><td>Déployer des pages d'interface</td><td>✅ Oui</td><td>Via <code>POST /workspaces/:id/pages</code>.</td></tr>
+    <tr><td>Interagir avec un agent en conversation</td><td>❌ Non confirmé</td><td>Endpoints <code>/threads</code>, <code>/conversations</code>, <code>/agents</code> non disponibles.</td></tr>
+    <tr><td>Gérer les utilisateurs et leurs droits</td><td>⚠️ Partiel</td><td><code>PATCH /users</code> bloqué sur le schéma <code>data</code>.</td></tr>
+    <tr><td>Monitoring / healthcheck</td><td>❌ Non</td><td><code>/health</code> non disponible.</td></tr>
+</table>
+
+<h3>10.2 Script Python de déploiement</h3>
+
+<p>Fichier : <code>/Users/U73LL72/deploy_securichat_agent.py</code></p>
+
+<p>Ce script crée un workspace, une automation (agent) et une page.</p>
+
+<pre><code>export SECURICHAT_TOKEN="ton_token_ici"
+python3 /Users/U73LL72/deploy_securichat_agent.py</code></pre>
+
+<p>Variables d'environnement optionnelles :</p>
+
+<table>
+    <tr><th>Variable</th><th>Description</th><th>Defaut</th></tr>
+    <tr><td><code>SECURICHAT_TOKEN</code></td><td>Token d'accès (obligatoire)</td><td>-</td></tr>
+    <tr><td><code>SECURICHAT_WORKSPACE_NAME</code></td><td>Nom du workspace</td><td>Agent Demo</td></tr>
+    <tr><td><code>SECURICHAT_AUTOMATION_NAME</code></td><td>Nom de l'automation</td><td>Assistant RH</td></tr>
+    <tr><td><code>SECURICHAT_SYSTEM_PROMPT</code></td><td>Instruction système de l'agent</td><td>Assistant CAGIP</td></tr>
+</table>
+
+<h3>10.3 Manifeste YAML d'agent</h3>
+
+<p>Fichier : <code>/Users/U73LL72/securichat_agent.yaml</code></p>
+
+<p>Exemple de structure :</p>
+
+<pre><code>workspace:
+  name: "Agent RH CAGIP"
+  description: "Workspace dedie aux assistants RH."
+  labels:
+    - "rh"
+    - "agent"
+
+automations:
+  - name: "Assistant RH"
+    slug: "assistant-rh"
+    do:
+      - id: "llm"
+        type: "assistant"
+        config:
+          model: "gpt-4"
+          systemPrompt: |
+            Tu es un assistant RH pour la CAGIP.
+
+pages:
+  - name: "Interface Assistant RH"
+    slug: "interface-assistant-rh"</code></pre>
+
+<h3>10.4 Script bash CI/CD</h3>
+
+<p>Fichier : <code>/Users/U73LL72/deploy_securichat_agent.sh</code></p>
+
+<p>Ce script lit le manifeste YAML et déploie l'agent via l'API.</p>
+
+<pre><code>export SECURICHAT_TOKEN="ton_token_ici"
+chmod +x /Users/U73LL72/deploy_securichat_agent.sh
+/Users/U73LL72/deploy_securichat_agent.sh /Users/U73LL72/securichat_agent.yaml</code></pre>
+
+<div class="warning">
+    <strong>Prérequis :</strong> le script utilise <code>yq</code> pour parser le YAML. Installez-le avec <code>brew install yq</code> (macOS) ou <code>wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64</code> (Linux).
+</div>
+
+<h2>11. Recommandations pour le codage agentique</h2>
+
+<div class="info">
+    <strong>Pour commencer :</strong>
+    <ul>
+        <li>Utilisez le script Python ou le manifeste YAML pour créer des agents de test.</li>
+        <li>Versionnez vos définitions d'agents dans Git (Infrastructure as Code).</li>
+        <li>Créez un workspace par environnement (dev, recette, prod).</li>
+    </ul>
+    <strong>Pour aller plus loin :</strong>
+    <ul>
+        <li>Contactez l'équipe Securichat pour obtenir la documentation du DSL <code>do</code> et les endpoints d'exécution conversationnelle.</li>
+        <li>Demandez un <strong>service token</strong> ou un token admin si vous devez gérer des utilisateurs.</li>
+        <li>Vérifiez le SDK / package Artifactory adapté à votre langage (Python, Node.js, Java).</li>
+    </ul>
+    <strong>Limites actuelles :</strong>
+    <ul>
+        <li>Pas d'API confirmée pour les conversations / threads.</li>
+        <li><code>PATCH /v2/users</code> non utilisable sans le schéma exact du champ <code>data</code>.</li>
+        <li>Pas d'endpoint de healthcheck.</li>
+    </ul>
+</div>
+
+<h2>12. Prochaines étapes recommandées</h2>
+
+<ol>
+    <li>Contacter l'équipe Securichat pour obtenir la documentation OpenAPI / Swagger de l'instance <code>cagip-securichat-prd</code>.</li>
+    <li>Clarifier le schéma du champ <code>data</code> pour <code>PATCH /v2/users</code>.</li>
+    <li>Vérifier les permissions associées au token (workspaces accessibles, rôle utilisateur).</li>
+    <li>Choisir le SDK correspondant au langage du projet et à la version de l'API v2.</li>
+</ol>
+
+<div class="warning">
+    <strong>Points de vigilance :</strong>
+    <ul>
+        <li>Ne pas exposer le token dans des logs ou des scripts partagés.</li>
+        <li>Les slugs d'automations contenant des espaces doivent être URL-encodés (<code>%20</code>).</li>
+        <li>Supprimer les objets de test après utilisation.</li>
+        <li>La suppression d'un workspace supprime automatiquement ses pages et automations.</li>
+    </ul>
+</div>
+
+</body>
+</html>
